@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><style>
+:root{color-scheme:light dark;
+  --window:#f2f2f4;--group:#fff;--group-edge:rgba(0,0,0,.07);--sep:rgba(0,0,0,.075);
+  --label:rgba(0,0,0,.86);--secondary:rgba(0,0,0,.5);--tertiary:rgba(0,0,0,.28);
+  --field:#fff;--field-edge:rgba(0,0,0,.15);--control:rgba(0,0,0,.055);--control-hover:rgba(0,0,0,.09);
+  --seg-on:#fff;--seg-on-shadow:0 .5px 1.5px rgba(0,0,0,.2),0 0 0 .5px rgba(0,0,0,.05);
+  --knob:#fff;--accent:#007aff;--accent-soft:rgba(0,122,255,.3);--sel:rgba(0,122,255,.08);
+  --warn:#c93400;--red:#d70015;--ok:#248a3d}
+@media (prefers-color-scheme:dark){:root{
+  --window:#1d1d1f;--group:rgba(255,255,255,.045);--group-edge:rgba(255,255,255,.07);--sep:rgba(255,255,255,.07);
+  --label:rgba(255,255,255,.88);--secondary:rgba(255,255,255,.52);--tertiary:rgba(255,255,255,.26);
+  --field:rgba(255,255,255,.07);--field-edge:rgba(255,255,255,.1);--control:rgba(255,255,255,.08);--control-hover:rgba(255,255,255,.13);
+  --seg-on:rgba(255,255,255,.2);--seg-on-shadow:0 .5px 1px rgba(0,0,0,.45);
+  --knob:#f5f5f7;--accent:#0a84ff;--accent-soft:rgba(10,132,255,.4);--sel:rgba(10,132,255,.14);
+  --warn:#ff9f0a;--red:#ff453a;--ok:#30d158}}
+*{box-sizing:border-box}
+html{background:var(--window)}
+body{margin:0;font:13px/1.45 -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;color:var(--label);-webkit-font-smoothing:antialiased;cursor:default;-webkit-user-select:none}
+main{max-width:564px;margin:0 auto;padding:26px 28px 34px}
+.hero{display:flex;align-items:center;gap:14px;margin:0 4px 24px}
+.icon{width:46px;height:46px;border-radius:11px;flex:none;display:grid;place-items:center;
+  background:linear-gradient(165deg,#64d2ff 0%,#0a84ff 52%,#5e5ce6 100%);
+  box-shadow:inset 0 .5px 0 rgba(255,255,255,.4),0 1px 3px rgba(0,0,0,.2)}
+.icon svg{width:28px;height:28px}
+.hero h1{margin:0;font-size:17px;font-weight:600;letter-spacing:-.01em}
+.hero p{margin:2px 0 0;color:var(--secondary);font-size:12px}
+.banner{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 22px;padding:10px 14px;border-radius:10px;
+  background:color-mix(in srgb,var(--warn) 12%,transparent);font-size:12px}
+.banner[hidden],.foot[hidden]{display:none}
+section{margin-bottom:24px}
+.sh{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 4px 7px}
+h2{margin:0;font-size:13px;font-weight:600;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.group{background:var(--group);border-radius:10px;box-shadow:0 0 0 .5px var(--group-edge);overflow:hidden;transition:box-shadow .15s}
+.row{display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:44px;padding:8px 14px;position:relative}
+.row+.row::before{content:"";position:absolute;top:0;left:14px;right:0;height:.5px;background:var(--sep)}
+.t{display:flex;flex-direction:column;min-width:0}
+.t small{color:var(--secondary);font-size:11.5px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.grow{flex:1}
+.foot{margin:7px 4px 0;color:var(--secondary);font-size:11.5px;line-height:1.55}
+.foot.warn{color:var(--warn)}
+code{font:11px ui-monospace,"SF Mono",Menlo,monospace;background:var(--control);padding:1px 4px;border-radius:4px}
+
+/* 配置列表 */
+.prof{justify-content:flex-start;transition:background .12s}
+.prof:hover{background:color-mix(in srgb,var(--control) 60%,transparent)}
+.prof.sel{background:var(--sel)}
+.prof .pname{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prof small.bad{color:var(--red)}
+.radio{all:unset;flex:none;width:16px;height:16px;border-radius:50%;box-shadow:inset 0 0 0 1px var(--field-edge);background:var(--field);display:grid;place-items:center;transition:background .15s,box-shadow .15s}
+.radio:hover{box-shadow:inset 0 0 0 1px var(--accent)}
+.radio.on{background:var(--accent);box-shadow:none}
+.radio.on::after{content:"";width:6px;height:6px;border-radius:50%;background:#fff}
+.tstat{flex:none;font-size:11.5px;color:var(--secondary);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tstat.ok{color:var(--ok)}.tstat.bad{color:var(--red)}
+.add{min-height:38px}
+.add .link{display:inline-flex;align-items:center;gap:6px;font-size:13px}
+.add svg{width:12px;height:12px;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+
+.seg{display:flex;background:var(--control);border-radius:8px;padding:2px;gap:2px;margin-bottom:10px}
+.seg button{all:unset;flex:1;text-align:center;height:24px;line-height:24px;border-radius:6px;font-size:12.5px;transition:background .15s}
+.seg button:hover:not(.on){background:var(--control-hover)}
+.seg button.on{background:var(--seg-on);box-shadow:var(--seg-on-shadow);font-weight:500}
+
+input[type=text],input[type=password],select,textarea{font:inherit;color:var(--label);background:var(--field);border:0;outline:0;border-radius:6px;
+  box-shadow:0 0 0 .5px var(--field-edge),0 .5px 1px rgba(0,0,0,.04);transition:box-shadow .15s}
+input[type=text],input[type=password]{width:260px;height:26px;padding:0 9px;-webkit-user-select:text;cursor:text}
+input.mono{font:12px ui-monospace,"SF Mono",Menlo,monospace}
+input.wide{width:340px}
+input:focus,select:focus{box-shadow:0 0 0 .5px var(--accent),0 0 0 3.5px var(--accent-soft)}
+::placeholder{color:var(--tertiary)}
+.select{position:relative}
+select{appearance:none;height:26px;padding:0 28px 0 10px;min-width:120px}
+.select svg{position:absolute;right:9px;top:50%;width:8px;height:12px;margin-top:-6px;pointer-events:none;fill:none;stroke:var(--secondary);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+textarea{display:block;width:100%;min-height:200px;padding:11px 14px;resize:vertical;line-height:1.6;font-size:12.5px;background:transparent;box-shadow:none;border-radius:0;-webkit-user-select:text;cursor:text}
+.group:has(textarea:focus){box-shadow:0 0 0 .5px var(--accent),0 0 0 3.5px var(--accent-soft)}
+
+.switch{position:relative;width:34px;height:20px;flex:none}
+.switch input{position:absolute;inset:0;margin:0;opacity:0}
+.switch span{position:absolute;inset:0;border-radius:10px;background:var(--control-hover);transition:background .2s}
+.switch span::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--knob);
+  box-shadow:0 1px 2.5px rgba(0,0,0,.25),0 0 0 .5px rgba(0,0,0,.04);transition:transform .22s cubic-bezier(.3,.7,.4,1)}
+.switch input:checked+span{background:var(--accent)}
+.switch input:checked+span::after{transform:translateX(14px)}
+
+.slider{display:flex;align-items:center;gap:10px}
+input[type=range]{appearance:none;width:200px;height:4px;border-radius:2px;outline:0;background:var(--control-hover)}
+input[type=range]::-webkit-slider-thumb{appearance:none;width:18px;height:18px;border-radius:50%;background:var(--knob);box-shadow:0 .5px 2.5px rgba(0,0,0,.3),0 0 0 .5px rgba(0,0,0,.08)}
+.slider output{width:48px;text-align:right;color:var(--secondary);font-size:12px;font-variant-numeric:tabular-nums}
+
+.push,.hotkey{all:unset;flex:none;height:26px;border-radius:6px;background:var(--field);font-size:13px;text-align:center;
+  box-shadow:0 0 0 .5px var(--field-edge),0 .5px 1.5px rgba(0,0,0,.08);transition:background .15s,box-shadow .15s,opacity .15s}
+.push{padding:0 14px}
+.push.sm{height:22px;padding:0 10px;font-size:12px}
+.push:hover,.hotkey:hover{background:var(--control-hover)}
+.push[disabled]{opacity:.5;pointer-events:none}
+.hotkey{min-width:74px;padding:0 12px;letter-spacing:.08em}
+.hotkey.rec{box-shadow:0 0 0 .5px var(--accent),0 0 0 3.5px var(--accent-soft);color:var(--secondary);letter-spacing:0}
+.link{all:unset;color:var(--accent);font-size:12px;white-space:nowrap}
+.link:hover{text-decoration:underline}
+.link.danger{color:var(--red)}
+.inline{display:flex;align-items:center;gap:10px}
+.toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,8px);padding:7px 14px;border-radius:8px;font-size:12px;
+  background:color-mix(in srgb,var(--label) 88%,transparent);color:var(--window);opacity:0;transition:opacity .2s,transform .2s;pointer-events:none}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+::selection{background:var(--accent-soft)}
+::-webkit-scrollbar{width:11px}
+::-webkit-scrollbar-thumb{background:var(--tertiary);background-clip:content-box;border:3px solid transparent;border-radius:6px}
+</style></head><body><main>
+
+<header class="hero">
+  <div class="icon"><svg viewBox="0 0 28 28" stroke-linecap="round" stroke-linejoin="round"><path fill="#fff" stroke="#fff" stroke-width="1.2" d="M6.5 5.5h15a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-7l-5 4v-4h-3a3 3 0 0 1-3-3v-8a3 3 0 0 1 3-3z"/><path fill="none" stroke="#2a7df6" stroke-width="1.9" d="M9 10.5h10M9 14.5h6"/></svg></div>
+  <div><h1>划词查词</h1><p>选中文字后按快捷键，或者在触控板上三指轻点。</p></div>
+</header>
+
+<div class="banner" id="axBanner" hidden><span>Hammerspoon 还没有辅助功能权限，取词和三指轻点都用不了。</span><button class="link" id="openAX">打开设置</button></div>
+
+<section>
+  <div class="sh"><h2>模型配置</h2></div>
+  <div class="group" id="profiles"></div>
+  <p class="foot">点左边的圆圈选择正在使用的配置；「测试」会用示例单词跑一次，看看能不能用、有多快。</p>
+</section>
+
+<section>
+  <div class="sh"><h2 id="editTitle"></h2><button class="link danger" id="removeProfile">删除配置</button></div>
+  <div class="seg" id="ptype"></div>
+  <div class="group" id="fields"></div>
+  <p class="foot" id="providerFoot"></p>
+</section>
+
+<section>
+  <div class="sh"><h2>触发方式</h2></div>
+  <div class="group">
+    <div class="row"><div class="t">快捷键<small>有选中文字就查选中的，没有就查鼠标指着的词</small></div><button class="hotkey" id="hotkey"></button></div>
+    <div class="row"><div class="t">三指轻点<small>和快捷键一样：有选中就查选中的，没有就查手指下的词</small></div><label class="switch"><input type="checkbox" id="threeFingerTap"><span></span></label></div>
+    <div class="row"><div class="t">读不到文字时模拟双击取词<small>快捷键和三指轻点都会用，比如 Chrome 网页、Cursor 里没选中文字的时候</small></div><label class="switch"><input type="checkbox" id="doubleClickFallback"><span></span></label></div>
+  </div>
+  <p class="foot warn" id="lookupWarn" hidden>系统的「查询与数据检测器」还开着，三指轻点会同时弹出系统词典。<button class="link" id="openTrackpad">去关掉</button></p>
+</section>
+
+<section>
+  <div class="sh"><h2>浮窗</h2></div>
+  <div class="group">
+    <div class="row"><div class="t">宽度</div><div class="slider"><input type="range" id="width" min="360" max="640" step="10"><output id="widthOut"></output></div></div>
+    <div class="row"><div class="t">最大高度</div><div class="slider"><input type="range" id="maxHeight" min="320" max="800" step="20"><output id="maxHeightOut"></output></div></div>
+  </div>
+</section>
+
+<section>
+  <div class="sh"><h2>提示词</h2><button class="link" id="resetPrompt">恢复默认</button></div>
+  <div class="group"><textarea id="prompt" spellcheck="false"></textarea></div>
+  <p class="foot">告诉模型怎么翻译、怎么解析。改完自动保存，下一次查词生效。</p>
+</section>
+
+</main>
+<div class="toast" id="toast"></div>
+<script>
+const post=m=>{try{webkit.messageHandlers.settings.postMessage(m)}catch(e){}};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const debounce=(fn,ms)=>{let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms)}};
+let S=null,editing=null;
+const tests={}; // id → {run} | {ok, ttft, total, error, sample}
+
+const NAMES={claude:'Claude Code',codex:'Codex',command:'命令行',openai:'OpenAI',anthropic:'Anthropic'};
+const EFFORT={'':'自动',minimal:'最低',low:'低',medium:'中',high:'高',xhigh:'很高',max:'最高'};
+const PROVIDERS={
+  claude:{foot:'使用本机 Claude Code 的登录，不需要 API Key。模型可以填 <code>haiku</code>、<code>sonnet</code>、<code>opus</code>，留空用默认。',fields:[
+    {k:'model',label:'模型',type:'text',ph:'默认',list:['haiku','sonnet','opus']},
+    {k:'effort',label:'思考强度',type:'select',opts:['','low','medium','high','xhigh','max']},
+    {k:'path',label:'可执行文件',type:'text',mono:true,ph:()=>S.detected.claude||'自动查找'}]},
+  codex:{foot:'使用 Codex CLI 的 ChatGPT 登录。Codex 不会逐字输出，结果会整段出现。',fields:[
+    {k:'model',label:'模型',type:'text',ph:'默认'},
+    {k:'effort',label:'思考强度',type:'select',opts:['','minimal','low','medium','high','xhigh']},
+    {k:'path',label:'可执行文件',type:'text',mono:true,ph:()=>S.detected.codex||'自动查找'}]},
+  command:{foot:'运行任意命令行工具。<code>{prompt}</code> 会替换成完整提示词，没写就追加在最后；命令的输出原样显示。',fields:[
+    {k:'line',label:'命令',type:'text',mono:true,wide:true,ph:'gemini -p {prompt}'}]},
+  openai:{foot:'兼容 OpenAI Chat Completions 的服务都能用，比如 DeepSeek、OpenRouter、Ollama。API Key 保存在系统钥匙串里。',fields:[
+    {k:'host',label:'接口地址',type:'text',mono:true,ph:'https://api.openai.com/v1'},
+    {k:'model',label:'模型',type:'text',ph:'gpt-5.5'},
+    {k:'effort',label:'思考强度',type:'select',opts:['','minimal','low','medium','high']},
+    {k:'key',label:'API Key',type:'key'}]},
+  anthropic:{foot:'Claude API，或兼容 Anthropic Messages 格式的服务。API Key 保存在系统钥匙串里。',fields:[
+    {k:'host',label:'接口地址',type:'text',mono:true,ph:'https://api.anthropic.com'},
+    {k:'model',label:'模型',type:'text',ph:'claude-opus-5-5',list:['claude-opus-5-5','claude-sonnet-5-5','claude-haiku-5-5']},
+    {k:'effort',label:'思考强度',type:'select',opts:['','low','medium','high','xhigh','max']},
+    {k:'fallbacks',label:'拒答时自动换模型重试',hint:'Claude API 的服务端能力，Haiku 不支持',type:'switch'},
+    {k:'key',label:'API Key',type:'key'}]},
+};
+const CHEVRON='<svg viewBox="0 0 8 12"><path d="M1 4.5 4 1.5l3 3M1 7.5l3 3 3-3"/></svg>';
+const PLUS='<svg viewBox="0 0 12 12"><path d="M6 1.5v9M1.5 6h9"/></svg>';
+
+let toastTimer;
+function toast(text){const el=$('toast');el.textContent=text;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2200)}
+
+const profile=id=>S.profiles.find(p=>p.id===id);
+const describe=p=>p.provider==='command'?NAMES.command:(NAMES[p.provider]||p.provider)+(p.model?' · '+p.model:'');
+const secs=ms=>(ms/1000).toFixed(1)+' 秒';
+
+/* ---------- 配置列表 ---------- */
+function renderList(){
+  const rows=S.profiles.map(p=>{
+    const t=tests[p.id]||{};
+    let stat='',cls='',sub=esc(describe(p)),subCls='',subTitle='';
+    if(t.run)stat='测试中…';
+    else if(t.ok){stat=`✓ 首字 ${secs(t.ttft)}`;cls='ok';subTitle=t.sample||''}
+    else if(t.error){stat='✗ 失败';cls='bad';sub=esc(t.error);subCls='bad';subTitle=t.error}
+    return `<div class="row prof${p.id===editing?' sel':''}" data-id="${esc(p.id)}">
+      <button class="radio${p.id===S.active?' on':''}" data-use="${esc(p.id)}" title="使用这套配置"></button>
+      <div class="t grow"><span class="pname">${esc(p.name||'未命名')}</span><small class="${subCls}" title="${esc(subTitle)}">${sub}</small></div>
+      <span class="tstat ${cls}" title="${t.ok?esc('共 '+secs(t.total)):''}">${stat}</span>
+      <button class="push sm" data-test="${esc(p.id)}"${t.run?' disabled':''}>测试</button></div>`;
+  }).join('');
+  $('profiles').innerHTML=rows+`<div class="row add"><button class="link" id="addProfile">${PLUS}添加配置</button></div>`;
+}
+$('profiles').addEventListener('click',e=>{
+  const use=e.target.closest('[data-use]'),test=e.target.closest('[data-test]'),row=e.target.closest('.prof');
+  if(e.target.closest('#addProfile'))return post({type:'addProfile'});
+  if(use){S.active=use.dataset.use;post({type:'use',id:S.active});renderList();return}
+  if(test){const id=test.dataset.test;tests[id]={run:true};renderList();post({type:'test',id});return}
+  if(row&&row.dataset.id!==editing){editing=row.dataset.id;renderList();renderEditor()}
+});
+
+/* ---------- 编辑区 ---------- */
+function field(f,p){
+  const id='f_'+f.k;let ctl='';
+  if(f.type==='text'){
+    const ph=typeof f.ph==='function'?f.ph():f.ph;
+    ctl=`<input type="text" id="${id}" class="${f.mono?'mono':''} ${f.wide?'wide':''}" value="${esc(p[f.k])}" placeholder="${esc(ph)}" spellcheck="false" autocomplete="off"${f.list?` list="${id}_l"`:''}>`
+      +(f.list?`<datalist id="${id}_l">${f.list.map(o=>`<option value="${o}">`).join('')}</datalist>`:'');
+  }else if(f.type==='select'){
+    ctl=`<div class="select"><select id="${id}">${f.opts.map(o=>`<option value="${o}"${o===(p[f.k]||'')?' selected':''}>${EFFORT[o]||o}</option>`).join('')}</select>${CHEVRON}</div>`;
+  }else if(f.type==='switch'){
+    ctl=`<label class="switch"><input type="checkbox" id="${id}"${p[f.k]?' checked':''}><span></span></label>`;
+  }else if(f.type==='key'){
+    const has=S.keys[p.id];
+    ctl=`<div class="inline">${has?`<button class="link" id="${id}_rm">移除</button>`:''}<input type="password" id="${id}" placeholder="${has?'已保存在钥匙串':'粘贴 API Key'}" spellcheck="false" autocomplete="off"></div>`;
+  }
+  return `<div class="row"><div class="t">${f.label}${f.hint?`<small>${f.hint}</small>`:''}</div>${ctl}</div>`;
+}
+
+let removeArmed=false,removeTimer;
+function renderEditor(){
+  const p=profile(editing);if(!p)return;
+  removeArmed=false;$('removeProfile').textContent='删除配置';
+  $('removeProfile').hidden=S.profiles.length<=1;
+  $('editTitle').textContent=`编辑「${p.name||'未命名'}」`;
+  $('ptype').innerHTML=Object.keys(NAMES).map(k=>`<button data-p="${k}" class="${k===p.provider?'on':''}">${NAMES[k]}</button>`).join('');
+  const def=PROVIDERS[p.provider]||{fields:[],foot:''};
+  const fields=[{k:'name',label:'名称',type:'text',ph:'给这套配置起个名字'}].concat(def.fields);
+  $('fields').innerHTML=fields.map(f=>field(f,p)).join('');
+  $('providerFoot').innerHTML=def.foot;
+  for(const f of fields){
+    const el=$('f_'+f.k);if(!el)continue;
+    const update=v=>post({type:'updateProfile',id:p.id,field:f.k,value:v});
+    if(f.type==='key'){
+      el.addEventListener('change',()=>{const v=el.value.trim();if(!v)return;el.value='';el.placeholder='正在保存…';post({type:'apikey',id:p.id,value:v})});
+      const rm=$(`f_${f.k}_rm`);if(rm)rm.onclick=()=>post({type:'apikeyRemove',id:p.id});
+    }else if(f.type==='switch'){
+      el.onchange=()=>{p[f.k]=el.checked;update(el.checked)};
+    }else{
+      // 模型名和地址里不会有空白和 '（拼音输入法在音节间插的分隔符），直接去掉
+      const clean=f.k==='model'||f.k==='host';
+      const save=()=>{let v=el.value.trim();if(clean){v=v.replace(/[\s']/g,'');if(document.activeElement!==el)el.value=v}
+        if(v===(p[f.k]||''))return;p[f.k]=v;update(v);
+        if(f.k==='name')$('editTitle').textContent=`编辑「${v||'未命名'}」`;
+        delete tests[p.id];renderList()};
+      el.addEventListener('change',save);
+      if(f.type==='text'){
+        // 输入法组字时框里是临时拼音，等选完字再存
+        const later=debounce(save,500);
+        el.addEventListener('input',e=>{if(!e.isComposing)later()});
+        el.addEventListener('compositionend',later);
+      }
+    }
+  }
+}
+$('ptype').addEventListener('click',e=>{
+  const k=e.target.dataset&&e.target.dataset.p,p=profile(editing);
+  if(!k||!p||k===p.provider)return;
+  delete tests[p.id];
+  post({type:'updateProfile',id:p.id,field:'provider',value:k});
+});
+$('removeProfile').onclick=()=>{
+  if(!removeArmed){removeArmed=true;$('removeProfile').textContent='再点一次确认删除';clearTimeout(removeTimer);
+    removeTimer=setTimeout(()=>{removeArmed=false;$('removeProfile').textContent='删除配置'},3000);return}
+  post({type:'removeProfile',id:editing});
+};
+
+/* ---------- 快捷键 ---------- */
+const MODS=[['ctrl','⌃'],['alt','⌥'],['shift','⇧'],['cmd','⌘']];
+const KEYNAMES={space:'Space',return:'↩',tab:'⇥',left:'←',right:'→',up:'↑',down:'↓'};
+function hotkeyLabel(h){const mods=Array.isArray(h.mods)?h.mods:[];return MODS.filter(m=>mods.includes(m[0])).map(m=>m[1]).join('')+' '+(KEYNAMES[h.key]||String(h.key).toUpperCase())}
+function codeToKey(c){
+  let m;
+  if(m=c.match(/^Key([A-Z])$/))return m[1].toLowerCase();
+  if(m=c.match(/^Digit(\d)$/))return m[1];
+  if(m=c.match(/^F(\d{1,2})$/))return 'f'+m[1];
+  return {Space:'space',Minus:'-',Equal:'=',BracketLeft:'[',BracketRight:']',Backslash:'\\',Semicolon:';',Quote:"'",Comma:',',Period:'.',Slash:'/',Backquote:'`',Enter:'return',Tab:'tab',ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down'}[c]||null;
+}
+let recording=false;
+function stopRecording(){recording=false;$('hotkey').classList.remove('rec');$('hotkey').textContent=hotkeyLabel(S.hotkey);post({type:'recording',on:false})}
+$('hotkey').onclick=()=>{if(recording)return stopRecording();recording=true;$('hotkey').classList.add('rec');$('hotkey').textContent='按下新的快捷键…';post({type:'recording',on:true})};
+window.addEventListener('blur',()=>{if(recording)stopRecording()});
+
+/* ---------- 键盘：录快捷键、复制粘贴、⌘W ---------- */
+let pasteTarget=null;
+document.addEventListener('keydown',e=>{
+  if(recording){
+    e.preventDefault();e.stopPropagation();
+    if(e.key==='Escape')return stopRecording();
+    const key=codeToKey(e.code);if(!key)return;
+    const mods=[];if(e.ctrlKey)mods.push('ctrl');if(e.altKey)mods.push('alt');if(e.shiftKey)mods.push('shift');if(e.metaKey)mods.push('cmd');
+    if(!mods.length&&!/^f\d+$/.test(key)){$('hotkey').textContent='要带 ⌃ ⌥ ⇧ ⌘ 之一';return}
+    recording=false;$('hotkey').classList.remove('rec');
+    post({type:'hotkey',mods,key});
+    return;
+  }
+  if(!e.metaKey||e.ctrlKey||e.altKey)return;
+  const k=e.key.toLowerCase(),el=document.activeElement;
+  if(k==='w'){e.preventDefault();post({type:'close'});return}
+  const editable=el&&(el.tagName==='TEXTAREA'||(el.tagName==='INPUT'&&(el.type==='text'||el.type==='password')));
+  if(!editable)return;
+  // Hammerspoon 没有「编辑」菜单，复制粘贴自己处理
+  if(k==='a'){e.preventDefault();el.select()}
+  else if(k==='c'||k==='x'){
+    e.preventDefault();
+    const s=el.value.slice(el.selectionStart,el.selectionEnd);
+    if(s&&el.type!=='password')post({type:'copy',text:s});
+    if(k==='x'&&s&&el.type!=='password'){el.setRangeText('',el.selectionStart,el.selectionEnd,'end');el.dispatchEvent(new Event('input',{bubbles:true}))}
+  }
+  else if(k==='v'){e.preventDefault();pasteTarget=el;post({type:'paste'})}
+},true);
+window.pasteText=t=>{
+  const el=pasteTarget;pasteTarget=null;if(!el||!t)return;
+  el.focus();el.setRangeText(t,el.selectionStart,el.selectionEnd,'end');
+  el.dispatchEvent(new Event('input',{bubbles:true}));
+  if(el.type==='password')el.dispatchEvent(new Event('change'));
+};
+
+/* ---------- 其它设置 ---------- */
+const set=(key,value)=>post({type:'set',key,value});
+function slider(id){
+  const el=$(id),out=$(id+'Out');
+  const paint=()=>{const p=(el.value-el.min)/(el.max-el.min)*100;el.style.background=`linear-gradient(to right,var(--accent) ${p}%,var(--control-hover) ${p}%)`;out.textContent=el.value+' pt'};
+  el.value=S[id];paint();
+  el.oninput=paint;el.onchange=()=>set(id,Number(el.value));
+}
+$('threeFingerTap').onchange=e=>{S.threeFingerTap=e.target.checked;set('threeFingerTap',S.threeFingerTap);$('lookupWarn').hidden=!(S.threeFingerTap&&S.systemLookupOn)};
+$('doubleClickFallback').onchange=e=>set('doubleClickFallback',e.target.checked);
+$('prompt').addEventListener('input',debounce(()=>set('prompt',$('prompt').value),600));
+$('resetPrompt').onclick=()=>post({type:'resetPrompt'});
+$('openAX').onclick=()=>post({type:'openAX'});
+$('openTrackpad').onclick=()=>post({type:'openTrackpad'});
+
+/* ---------- Lua 调过来的 ---------- */
+window.load=state=>{
+  S=state;
+  if(!profile(editing))editing=S.active;
+  $('axBanner').hidden=S.axTrusted;
+  $('lookupWarn').hidden=!(S.threeFingerTap&&S.systemLookupOn);
+  renderList();renderEditor();
+  if(!recording)$('hotkey').textContent=hotkeyLabel(S.hotkey);
+  $('threeFingerTap').checked=S.threeFingerTap;
+  $('doubleClickFallback').checked=S.doubleClickFallback;
+  slider('width');slider('maxHeight');
+  if(document.activeElement!==$('prompt'))$('prompt').value=S.prompt;
+};
+window.edit=id=>{editing=id;renderList();renderEditor();const n=$('f_name');if(n){n.focus();n.select()}};
+window.testResult=r=>{tests[r.id]=r;renderList()};
+window.keySaved=r=>{
+  S.keys[r.id]=r.has;
+  if(r.id===editing)renderEditor();
+  delete tests[r.id];renderList();
+  toast(r.removed?'已从钥匙串移除':(r.has?'API Key 已保存到钥匙串':'API Key 没有保存成功'));
+};
+window.hotkeyResult=r=>{
+  S.hotkey=r.hotkey;$('hotkey').textContent=hotkeyLabel(S.hotkey);
+  post({type:'recording',on:false});
+  if(!r.ok)toast(r.error||'这个快捷键用不了');
+};
+post({type:'ready'});
+</script></body></html>

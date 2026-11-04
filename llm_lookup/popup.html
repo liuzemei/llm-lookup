@@ -1,0 +1,79 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+:root{color-scheme:light dark;
+  --bg:rgba(246,246,248,.97);--label:rgba(0,0,0,.85);--secondary:rgba(0,0,0,.5);--tertiary:rgba(0,0,0,.26);
+  --sep:rgba(0,0,0,.08);--fill:rgba(0,0,0,.045);--hover:rgba(0,0,0,.07);--edge:rgba(0,0,0,.13);--highlight:rgba(255,255,255,.8);
+  --accent:#007aff;--red:#ff3b30}
+@media (prefers-color-scheme:dark){:root{
+  --bg:rgba(38,38,40,.97);--label:rgba(255,255,255,.88);--secondary:rgba(255,255,255,.55);--tertiary:rgba(255,255,255,.26);
+  --sep:rgba(255,255,255,.08);--fill:rgba(255,255,255,.07);--hover:rgba(255,255,255,.1);--edge:rgba(0,0,0,.6);--highlight:rgba(255,255,255,.11);
+  --accent:#0a84ff;--red:#ff453a}}
+*{box-sizing:border-box}
+html,body{margin:0;background:transparent;overflow:hidden}
+body{padding:__PAD__px;font:13px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;color:var(--label);-webkit-font-smoothing:antialiased;cursor:default}
+#card{background:var(--bg);border-radius:14px;overflow:hidden;
+  box-shadow:0 0 0 .5px var(--edge),inset 0 .5px 0 var(--highlight),0 8px 20px -4px rgba(0,0,0,.24),0 1px 4px rgba(0,0,0,.08)}
+#head{display:flex;align-items:center;gap:2px;height:38px;padding:0 7px 0 16px;-webkit-user-select:none}
+#q{flex:1;min-width:0;font-weight:600;letter-spacing:-.005em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#label{margin:0 6px 0 8px;font-size:11px;color:var(--tertiary);white-space:nowrap}
+button{all:unset;display:grid;place-items:center;width:24px;height:24px;border-radius:12px;color:var(--secondary);transition:background .15s,color .15s}
+button:hover{background:var(--hover);color:var(--label)}
+button svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+#sep{height:.5px;background:var(--sep)}
+#body{padding:11px 16px 14px;max-height:__MAXBODY__px;overflow-y:auto;overscroll-behavior:contain;-webkit-user-select:text;cursor:auto}
+#body>:first-child{margin-top:0}#body>:last-child{margin-bottom:0}
+#body p{margin:0 0 6px}
+#body>p:first-child>b:first-child{font-size:15px;letter-spacing:-.01em}
+#body ul,#body ol{margin:2px 0 8px;padding-left:18px}
+#body li{margin:3px 0;padding-left:2px}
+#body li::marker{color:var(--tertiary)}
+#body h4{margin:12px 0 4px;font-size:12px;font-weight:600;color:var(--secondary)}
+#body b{font-weight:600}
+#body code{font:12px/1.4 ui-monospace,"SF Mono",Menlo,monospace;background:var(--fill);border-radius:5px;padding:1px 5px}
+#body pre{font:12px/1.5 ui-monospace,"SF Mono",Menlo,monospace;background:var(--fill);border-radius:8px;padding:8px 10px;margin:6px 0 8px;white-space:pre-wrap;word-break:break-word}
+#body blockquote{margin:6px 0;padding-left:10px;border-left:2px solid var(--sep);color:var(--secondary)}
+::selection{background:color-mix(in srgb,var(--accent) 28%,transparent)}
+::-webkit-scrollbar{width:11px}
+::-webkit-scrollbar-thumb{background:var(--tertiary);background-clip:content-box;border:3px solid transparent;border-radius:6px}
+.status{margin:0;background:linear-gradient(90deg,var(--tertiary) 35%,var(--label) 50%,var(--tertiary) 65%);background-size:250% 100%;
+  -webkit-background-clip:text;color:transparent;animation:shimmer 1.8s linear infinite}
+@keyframes shimmer{from{background-position:100% 0}to{background-position:0 0}}
+.err{margin:6px 0 0;font-size:12px;color:var(--red)}
+</style></head><body><div id="card">
+<div id="head"><div id="q"></div><span id="label"></span>
+<button id="copy" title="复制"><svg viewBox="0 0 16 16"><rect x="5.5" y="5.5" width="8.5" height="8.5" rx="2"/><path d="M3.5 10.5h-.3A1.7 1.7 0 0 1 1.5 8.8V3.2A1.7 1.7 0 0 1 3.2 1.5h5.6a1.7 1.7 0 0 1 1.7 1.7v.3"/></svg></button>
+<button id="close" title="关闭"><svg viewBox="0 0 16 16"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg></button></div>
+<div id="sep"></div><div id="body"></div></div>
+<script>
+const post=m=>{try{webkit.messageHandlers.lookup.postMessage(m)}catch(e){}};
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const inline=s=>esc(s).replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/(^|[^*\w])\*(?!\s)(.+?)\*(?!\w)/g,'$1<i>$2</i>');
+function md(src){
+  const out=[];let list=null,code=null;
+  const close=()=>{if(list){out.push('</'+list+'>');list=null}};
+  for(const raw of src.split('\n')){
+    if(code!==null){if(/^\s*```/.test(raw)){out.push('<pre>'+esc(code)+'</pre>');code=null}else code+=(code?'\n':'')+raw;continue}
+    if(/^\s*```/.test(raw)){close();code='';continue}
+    const line=raw.trimEnd();let m;
+    if(!line.trim()){close();continue}
+    if(m=line.match(/^#{1,6}\s+(.*)/)){close();out.push('<h4>'+inline(m[1])+'</h4>');continue}
+    if(m=line.match(/^\s*[-*•]\s+(.*)/)){if(list!=='ul'){close();out.push('<ul>');list='ul'}out.push('<li>'+inline(m[1])+'</li>');continue}
+    if(m=line.match(/^\s*\d+[.)]\s+(.*)/)){if(list!=='ol'){close();out.push('<ol>');list='ol'}out.push('<li>'+inline(m[1])+'</li>');continue}
+    if(list&&/^\s+\S/.test(raw)){out[out.length-1]=out[out.length-1].replace(/<\/li>$/,'<br>'+inline(line.trim())+'</li>');continue}
+    if(m=line.match(/^>\s?(.*)/)){close();out.push('<blockquote>'+inline(m[1])+'</blockquote>');continue}
+    close();out.push('<p>'+inline(line)+'</p>');
+  }
+  if(code!==null)out.push('<pre>'+esc(code)+'</pre>');
+  close();return out.join('');
+}
+const $=id=>document.getElementById(id);
+const COPY=$('copy').innerHTML,CHECK='<svg viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-7"/></svg>';
+const dropStatus=()=>{const s=document.querySelector('.status');if(s)s.remove()};
+window.reset=o=>{$('q').textContent=o.q;$('label').textContent=o.label||'';$('body').innerHTML='<p class="status">正在思考…</p>';$('body').scrollTop=0};
+window.render=t=>{$('body').innerHTML=md(t)};
+window.fail=t=>{dropStatus();$('body').insertAdjacentHTML('beforeend','<p class="err">'+esc(t)+'</p>')};
+window.finish=()=>dropStatus();
+$('copy').onclick=()=>{post({type:'copy'});$('copy').innerHTML=CHECK;setTimeout(()=>$('copy').innerHTML=COPY,1200)};
+$('close').onclick=()=>post({type:'close'});
+new ResizeObserver(()=>post({type:'height',h:Math.ceil(document.body.getBoundingClientRect().height)})).observe(document.body);
+post({type:'ready'});
+</script></body></html>
