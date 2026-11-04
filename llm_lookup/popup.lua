@@ -7,11 +7,13 @@ local P = {}
 
 local PAD = 20 -- 窗口四周留给阴影的透明边
 local types = hs.eventtap.event.types
+local log = hs.logger.new("llmLookup", "info")
 
 P.onClose = nil -- 由 init 设置：关掉浮窗时顺便取消正在跑的请求
 P.text = ""
 
 local wv, uc, ready, queue, anchor
+local closeGen = 0
 
 local function js(fn, arg)
   if not wv then return end
@@ -88,6 +90,7 @@ function P.show(pos, title, label)
     y = up and (pos.y - 8 + PAD) or (below - PAD),
     up = up,
   }
+  closeGen = closeGen + 1 -- 又要显示了，取消关闭后的核对
   ensure()
   P.text = ""
   js("reset", { q = title, label = label })
@@ -105,11 +108,42 @@ end
 function P.fail(msg) js("fail", msg) end
 function P.finish() js("finish") end
 
+-- 偶尔窗口已经隐藏了，窗口服务器却还把它画在屏幕上，留下一张点不动、关不掉的卡片。
+-- 关掉后核对一下，还在屏幕上就整个销毁，下次查词再新建
+local function onScreen()
+  local f = wv:frame()
+  for _, w in ipairs(hs.window.list(true) or {}) do
+    local b = w.kCGWindowBounds
+    if w.kCGWindowOwnerPID == hs.processInfo.processID and w.kCGWindowIsOnscreen and b
+        and math.abs(b.X - f.x) < 2 and math.abs(b.Y - f.y) < 2
+        and math.abs(b.Width - f.w) < 2 and math.abs(b.Height - f.h) < 2 then
+      return true
+    end
+  end
+end
+
+local function ensureGone(gen)
+  if gen ~= closeGen or not wv or wv:isVisible() then return end
+  if onScreen() then
+    log.w("浮窗隐藏后仍留在屏幕上，销毁重建")
+    wv:delete()
+    wv = nil
+  end
+end
+
 function P.close()
   if P.onClose then P.onClose() end
-  if wv then wv:hide() end
   escKey:disable()
   clickWatcher:stop()
+  if not wv then return end
+  local wasVisible = wv:isVisible()
+  wv:hide()
+  closeGen = closeGen + 1
+  if wasVisible then
+    local gen = closeGen
+    U.after(0.5, function() ensureGone(gen) end)
+    U.after(2, function() ensureGone(gen) end)
+  end
 end
 
 return P
