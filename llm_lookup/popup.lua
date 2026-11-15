@@ -17,6 +17,8 @@ local wv, uc, ready, queue, anchor
 local closeGen = 0
 local prevWin, typed -- 查词前的焦点窗口；用户点过输入框的话，按 Esc 关掉时把焦点还回去
 
+local escKey -- 浮窗显示时按 Esc 关掉；在下面创建，这里先声明给 ensure 里的回调用
+
 local function js(fn, arg)
   if not wv then return end
   local call = fn .. "(" .. hs.json.encode({ arg }) .. "[0])"
@@ -48,6 +50,13 @@ local function ensure()
       P.close(b.refocus)
     elseif b.type == "focus" then
       typed = true
+    elseif b.type == "setClipboard" then
+      if type(b.text) == "string" then hs.pasteboard.setContents(b.text) end
+    elseif b.type == "paste" then
+      local t = hs.pasteboard.getContents()
+      if t then js("pasteText", t) end
+    elseif b.type == "composing" then
+      if b.on then escKey:disable() elseif wv and wv:isVisible() then escKey:enable() end
     elseif b.type == "ask" then
       if P.onAsk and type(b.q) == "string" then P.onAsk(b.q) end
     end
@@ -71,7 +80,8 @@ function P.rebuild()
   wv = nil
 end
 
-local escKey = hs.hotkey.new({}, "escape", function() P.close(true) end)
+
+escKey = hs.hotkey.new({}, "escape", function() P.close(true) end)
 
 -- 按卡片本身判断，点到阴影那圈透明边也算点在外面
 local clickWatcher = hs.eventtap.new({ types.leftMouseDown, types.rightMouseDown }, function(e)
