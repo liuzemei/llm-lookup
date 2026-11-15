@@ -1,6 +1,6 @@
 -- 模型来源：本机 Claude Code / Codex / 任意命令行，或 OpenAI / Anthropic 格式的 HTTP 接口
 --
--- 每个 runner(b, system, prompt, out) 通过 out.delta(text) / out.reset() / out.done(err, finalText) 回报，
+-- 每个 runner(b, system, messages, out) 通过 out.delta(text) / out.reset() / out.done(err, finalText) 回报，
 -- 返回 hs.task（用于取消）；出错时可以直接 out.done(err) 并返回 nil
 
 local config = require("llm_lookup.config")
@@ -175,6 +175,23 @@ local function curlStream(url, headers, body, onData, onExit)
   end)
 end
 
+-- 多轮对话：messages 是 { {role = "user"|"assistant", content = ...}, ... }，也兼容只传一个字符串
+local function asMessages(m)
+  if type(m) == "string" then return { { role = "user", content = m } } end
+  return m
+end
+
+-- 命令行来源只能收一段文字，把历史拼进去。只有一轮时原样返回（以中文开头，不会被当成命令行选项）
+local function flatten(messages)
+  if #messages == 1 then return messages[1].content end
+  local parts = { "下面是我们之前关于这段文字的对话，请接着回答我最后的追问。" }
+  for i, m in ipairs(messages) do
+    local who = m.role == "assistant" and "【你的回答】" or (i == #messages and "【我的追问】" or "【我】")
+    parts[#parts + 1] = who .. "\n" .. m.content
+  end
+  return table.concat(parts, "\n\n")
+end
+
 -- 补全接口地址：host 写到哪一级都行。只有域名时补上 /v1
 local function apiUrl(host, endpoint)
   host = U.trim(host):gsub("/+$", "")
@@ -191,7 +208,8 @@ local function orDefault(v, d) return (v and v ~= "") and v or d end
 
 local runners = {}
 
-function runners.claude(b, system, prompt, out)
+function runners.claude(b, system, messages, out)
+  local prompt = flatten(messages)
   local bin = findBinary(b, "claude")
   if not bin then return out.done("找不到 claude 命令，请在设置里填写可执行文件路径") end
   local args = {
@@ -222,7 +240,8 @@ function runners.claude(b, system, prompt, out)
   end)
 end
 
-function runners.codex(b, system, prompt, out)
+function runners.codex(b, system, messages, out)
+  local prompt = flatten(messages)
   local bin = findBinary(b, "codex")
   if not bin then return out.done("找不到 codex 命令，请在设置里填写可执行文件路径") end
   -- 只读沙箱、不落会话、在临时目录里跑，避免读到项目里的 AGENTS.md
@@ -255,7 +274,8 @@ function runners.codex(b, system, prompt, out)
   end)
 end
 
-function runners.command(b, system, prompt, out)
+function runners.command(b, system, messages, out)
+  local prompt = flatten(messages)
   local parts = U.splitArgs(b.line or "")
   if #parts == 0 then return out.done("请在设置里填写命令") end
   local bin = findBinary({}, parts[1])
@@ -279,7 +299,7 @@ local function needsKey(p, host, key)
   return not key and host:find(OFFICIAL[p], 1, true)
 end
 
-function runners.openai(b, system, prompt, out)
+function runners.openai(b, system, messages, out)
   local host = orDefault(b.host, "https://api.openai.com/v1")
   local key = getKey(b.id)
   if needsKey("openai", host, key) then return out.done("还没有设置 OpenAI 的 API Key") end
@@ -288,7 +308,7 @@ function runners.openai(b, system, prompt, out)
   if key then headers[#headers + 1] = "authorization: Bearer " .. key end
   local body = {
     model = b.model, stream = true,
-    messages = { { role = "system", content = system }, { role = "user", content = prompt } },
+    messages = { { role = "system", content = system }, table.unpack(messages) },
   }
   if not U.isAuto(b.effort) then body.reasoning_effort = b.effort end
 
@@ -304,7 +324,7 @@ function runners.openai(b, system, prompt, out)
   end, function(msg) out.done(errMsg or msg) end)
 end
 
-function runners.anthropic(b, system, prompt, out)
+function runners.anthropic(b, system, messages, out)
   local host = orDefault(b.host, "https://api.anthropic.com")
   local key = getKey(b.id)
   if needsKey("anthropic", host, key) then return out.done("还没有设置 Anthropic 的 API Key") end
@@ -313,7 +333,7 @@ function runners.anthropic(b, system, prompt, out)
   if key then headers[#headers + 1] = "x-api-key: " .. key end
   local body = {
     model = b.model, max_tokens = 64000, stream = true,
-    system = system, messages = { { role = "user", content = prompt } },
+    system = system, messages = messages,
   }
   if not U.isAuto(b.effort) then body.output_config = { effort = b.effort } end
   -- 拒答时服务端自动换模型重试；Haiku 没有这个能力，跳过
@@ -344,13 +364,13 @@ end
 
 ---------------------------------------------------------------------------
 
-function B.run(profile, system, prompt, out)
+function B.run(profile, system, messages, out)
   local run = runners[profile.provider]
   if not run then return out.done("不认识的模型来源：" .. tostring(profile.provider)) end
   if (profile.provider == "openai" or profile.provider == "anthropic") and U.isAuto(profile.model) then
     return out.done("请在设置里填写模型")
   end
-  return run(profile, system, prompt, out)
+  return run(profile, system, asMessages(messages), out)
 end
 
 local TEST_PROMPT = "上下文：It was pure serendipity that we met on the train.\n要查的词：serendipity"

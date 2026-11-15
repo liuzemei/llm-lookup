@@ -29,10 +29,15 @@ popup.onClose = function()
   task = nil
 end
 
-local function show(q, pos)
-  local prompt, title = capture.buildPrompt(q)
+-- 当前浮窗里的对话；新的查词会整个换掉
+local convo
+
+-- 把 messages 发给模型，结果流式显示在浮窗当前这一轮里；成功的话把回答记进对话
+local function run(messages)
+  if task and task:isRunning() then task:terminate() end
   local profile = config.active()
-  popup.show(pos, title, profile.name)
+  local system = config.prompt()
+  if #messages > 1 then system = system .. "\n\n" .. config.FOLLOWUP_PROMPT end
 
   gen = gen + 1
   local mine = gen
@@ -50,7 +55,7 @@ local function show(q, pos)
       U.after(0.05, flush)
     end
   end
-  task = backends.run(profile, config.prompt(), prompt, {
+  task = backends.run(profile, system, messages, {
     delta = function(t)
       if mine ~= gen then return end
       text = text .. t
@@ -63,16 +68,37 @@ local function show(q, pos)
     end,
     done = function(err, final)
       if mine ~= gen then return end
+      task = nil
       if final then text = final end
       flush()
-      if err then
-        popup.fail(err)
-      elseif text == "" then
-        popup.fail("没有返回内容")
+      local ok = not err and text:find("%S") ~= nil
+      if ok then
+        messages[#messages + 1] = { role = "assistant", content = text }
+      else
+        popup.fail(err or "没有返回内容")
+        -- 追问失败就从历史里撤掉这一问，可以重新问；首轮失败则不显示输入框
+        if #messages > 1 then table.remove(messages) end
       end
-      popup.finish()
+      popup.finish(ok)
     end,
   })
+end
+
+local function show(q, pos)
+  local prompt, title = capture.buildPrompt(q)
+  popup.show(pos, title, config.active().name)
+  convo = { { role = "user", content = prompt } }
+  run(convo)
+end
+
+popup.onAsk = function(q)
+  q = U.trim(q)
+  if not convo or q == "" or (task and task:isRunning()) then return end
+  -- 首轮失败时历史里只有一条用户消息，没有可追问的上下文
+  if convo[#convo].role ~= "assistant" then return end
+  convo[#convo + 1] = { role = "user", content = q }
+  popup.ask(q)
+  run(convo)
 end
 
 function M.lookup(source)

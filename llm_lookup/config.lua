@@ -14,6 +14,9 @@ C.DEFAULT_PROMPT = [[
 
 单词控制在 150 字以内，句子控制在 400 字以内。]]
 
+-- 有追问时接在系统提示后面
+C.FOLLOWUP_PROMPT = "用户可能会就这段文字继续追问。回答追问时直接、简洁地回应问题本身，不必再套用上面的输出格式，仍然输出 Markdown。"
+
 C.PROVIDER_NAMES = { claude = "Claude Code", codex = "Codex", command = "命令行", openai = "OpenAI", anthropic = "Anthropic" }
 
 -- 每种来源的参数和默认值；model / effort 留空表示用对方的默认值；API Key 不在这里，存在钥匙串里

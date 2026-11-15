@@ -10,10 +10,12 @@ local types = hs.eventtap.event.types
 local log = hs.logger.new("llmLookup", "info")
 
 P.onClose = nil -- 由 init 设置：关掉浮窗时顺便取消正在跑的请求
+P.onAsk = nil   -- 由 init 设置：在浮窗底部输入了追问
 P.text = ""
 
 local wv, uc, ready, queue, anchor
 local closeGen = 0
+local prevWin, typed -- 查词前的焦点窗口；用户点过输入框的话，按 Esc 关掉时把焦点还回去
 
 local function js(fn, arg)
   if not wv then return end
@@ -43,11 +45,15 @@ local function ensure()
     elseif b.type == "copy" then
       hs.pasteboard.setContents(P.text or "")
     elseif b.type == "close" then
-      P.close()
+      P.close(b.refocus)
+    elseif b.type == "focus" then
+      typed = true
+    elseif b.type == "ask" then
+      if P.onAsk and type(b.q) == "string" then P.onAsk(b.q) end
     end
   end)
   local v = config.values
-  local html = U.readFile("popup.html"):gsub("__PAD__", tostring(PAD)):gsub("__MAXBODY__", tostring(v.maxHeight - 40))
+  local html = U.readFile("popup.html"):gsub("__PAD__", tostring(PAD)):gsub("__MAXCARD__", tostring(v.maxHeight))
   wv = hs.webview.new({ x = 0, y = 0, w = v.width + 2 * PAD, h = 100 }, {}, uc)
       :windowStyle({ "borderless", "nonactivating" })
       :transparent(true)
@@ -65,7 +71,7 @@ function P.rebuild()
   wv = nil
 end
 
-local escKey = hs.hotkey.new({}, "escape", function() P.close() end)
+local escKey = hs.hotkey.new({}, "escape", function() P.close(true) end)
 
 -- 按卡片本身判断，点到阴影那圈透明边也算点在外面
 local clickWatcher = hs.eventtap.new({ types.leftMouseDown, types.rightMouseDown }, function(e)
@@ -93,6 +99,7 @@ function P.show(pos, title, label)
   closeGen = closeGen + 1 -- 又要显示了，取消关闭后的核对
   ensure()
   P.text = ""
+  prevWin, typed = hs.window.focusedWindow(), false
   js("reset", { q = title, label = label })
   setHeight(110)
   wv:show()
@@ -106,7 +113,11 @@ function P.render(text)
 end
 
 function P.fail(msg) js("fail", msg) end
-function P.finish() js("finish") end
+function P.finish(ok) js("finish", ok == true) end
+function P.ask(q)
+  P.text = ""
+  js("followUp", q)
+end
 
 -- 偶尔窗口已经隐藏了，窗口服务器却还把它画在屏幕上，留下一张点不动、关不掉的卡片。
 -- 关掉后核对一下，还在屏幕上就整个销毁，下次查词再新建
@@ -131,13 +142,15 @@ local function ensureGone(gen)
   end
 end
 
-function P.close()
+-- refocus：Esc / 关闭按钮关掉时为 true；点到外面关掉时焦点本来就去了别处，不用管
+function P.close(refocus)
   if P.onClose then P.onClose() end
   escKey:disable()
   clickWatcher:stop()
   if not wv then return end
   local wasVisible = wv:isVisible()
   wv:hide()
+  if refocus and wasVisible and typed and prevWin and prevWin:isVisible() then prevWin:focus() end
   closeGen = closeGen + 1
   if wasVisible then
     local gen = closeGen
@@ -145,5 +158,8 @@ function P.close()
     U.after(2, function() ensureGone(gen) end)
   end
 end
+
+-- 调试用：在浮窗里执行一段 JS，结果交给 cb
+function P._eval(code, cb) if wv then wv:evaluateJavaScript(code, cb or function() end) end end
 
 return P
