@@ -10,19 +10,21 @@
 *{box-sizing:border-box}
 html,body{margin:0;background:transparent;overflow:hidden}
 body{padding:__PAD__px;font:13px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;color:var(--label);-webkit-font-smoothing:antialiased;cursor:default}
-#card{background:var(--bg);border-radius:14px;overflow:hidden;
+#card{display:flex;flex-direction:column;max-height:__MAXCARD__px;background:var(--bg);border-radius:14px;overflow:hidden;
   box-shadow:0 0 0 .5px var(--edge),inset 0 .5px 0 var(--highlight),0 8px 20px -4px rgba(0,0,0,.24),0 1px 4px rgba(0,0,0,.08)}
-#head{display:flex;align-items:center;gap:2px;height:38px;padding:0 7px 0 16px;-webkit-user-select:none}
+#head{flex:none;display:flex;align-items:center;gap:2px;height:38px;padding:0 7px 0 16px;-webkit-user-select:none}
 #q{flex:1;min-width:0;font-weight:600;letter-spacing:-.005em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #label{margin:0 6px 0 8px;font-size:11px;color:var(--tertiary);white-space:nowrap}
 button{all:unset;display:grid;place-items:center;width:24px;height:24px;border-radius:12px;color:var(--secondary);transition:background .15s,color .15s}
 button:hover{background:var(--hover);color:var(--label)}
 button svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
-#sep{height:.5px;background:var(--sep)}
-#body{padding:11px 16px 14px;max-height:__MAXBODY__px;overflow-y:auto;overscroll-behavior:contain;-webkit-user-select:text;cursor:auto}
-#body>:first-child{margin-top:0}#body>:last-child{margin-bottom:0}
+#sep{flex:none;height:.5px;background:var(--sep)}
+#body{position:relative;flex:0 1 auto;min-height:0;padding:11px 16px 14px;overflow-y:auto;overscroll-behavior:contain;-webkit-user-select:text;cursor:auto}
+.a>:first-child{margin-top:0}.a>:last-child{margin-bottom:0}
+.turn+.turn{margin-top:12px;padding-top:12px;border-top:.5px solid var(--sep)}
+.u{margin:0 0 8px;padding:5px 10px;border-radius:8px;background:var(--fill);font-weight:500;white-space:pre-wrap;word-break:break-word}
 #body p{margin:0 0 6px}
-#body>p:first-child>b:first-child{font-size:15px;letter-spacing:-.01em}
+.turn:first-child>.a>p:first-child>b:first-child{font-size:15px;letter-spacing:-.01em}
 #body ul,#body ol{margin:2px 0 8px;padding-left:18px}
 #body li{margin:3px 0;padding-left:2px}
 #body li::marker{color:var(--tertiary)}
@@ -37,12 +39,23 @@ button svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.4
 .status{margin:0;background:linear-gradient(90deg,var(--tertiary) 35%,var(--label) 50%,var(--tertiary) 65%);background-size:250% 100%;
   -webkit-background-clip:text;color:transparent;animation:shimmer 1.8s linear infinite}
 @keyframes shimmer{from{background-position:100% 0}to{background-position:0 0}}
+#foot{flex:none;display:none;align-items:flex-end;gap:6px;padding:7px 7px 7px 16px;border-top:.5px solid var(--sep)}
+#foot.on{display:flex}
+#ask{all:unset;display:block;flex:1;min-width:0;min-height:20px;max-height:100px;padding:2px 0;overflow-y:auto;
+  font:13px/20px -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;color:var(--label);white-space:pre-wrap;word-break:break-word;-webkit-user-select:text;cursor:text}
+#ask::placeholder{color:var(--tertiary)}
+#ask:disabled{cursor:default}
+#send{flex:none}
+#send.go{background:var(--accent);color:#fff}
+#send svg{stroke-width:1.8}
 .err{margin:6px 0 0;font-size:12px;color:var(--red)}
 </style></head><body><div id="card">
 <div id="head"><div id="q"></div><span id="label"></span>
 <button id="copy" title="复制"><svg viewBox="0 0 16 16"><rect x="5.5" y="5.5" width="8.5" height="8.5" rx="2"/><path d="M3.5 10.5h-.3A1.7 1.7 0 0 1 1.5 8.8V3.2A1.7 1.7 0 0 1 3.2 1.5h5.6a1.7 1.7 0 0 1 1.7 1.7v.3"/></svg></button>
 <button id="close" title="关闭"><svg viewBox="0 0 16 16"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg></button></div>
-<div id="sep"></div><div id="body"></div></div>
+<div id="sep"></div><div id="body"></div>
+<div id="foot"><textarea id="ask" rows="1" placeholder="继续追问…"></textarea>
+<button id="send" title="发送（↩）"><svg viewBox="0 0 16 16"><path d="M8 13V3.5M4 7.5l4-4 4 4"/></svg></button></div></div>
 <script>
 const post=m=>{try{webkit.messageHandlers.lookup.postMessage(m)}catch(e){}};
 const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -67,13 +80,42 @@ function md(src){
 }
 const $=id=>document.getElementById(id);
 const COPY=$('copy').innerHTML,CHECK='<svg viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-7"/></svg>';
-const dropStatus=()=>{const s=document.querySelector('.status');if(s)s.remove()};
-window.reset=o=>{$('q').textContent=o.q;$('label').textContent=o.label||'';$('body').innerHTML='<p class="status">正在思考…</p>';$('body').scrollTop=0};
-window.render=t=>{$('body').innerHTML=md(t)};
-window.fail=t=>{dropStatus();$('body').insertAdjacentHTML('beforeend','<p class="err">'+esc(t)+'</p>')};
-window.finish=()=>dropStatus();
+const STATUS='<p class="status">正在思考…</p>';
+const body=$('body'),input=$('ask'),send=$('send'),foot=$('foot');
+let cur=null,busy=false,anyOk=false,pin=null; // pin：追问那一轮，回答流式变长时让问题保持在顶部
+const dropStatus=()=>{const s=body.querySelector('.status');if(s)s.remove()};
+const grow=()=>{input.style.height='auto';input.style.height=input.scrollHeight+'px';send.classList.toggle('go',!busy&&!!input.value.trim())};
+const setBusy=b=>{busy=b;input.disabled=b;input.placeholder=b?'正在回答…':'继续追问…';grow()};
+const newTurn=html=>{const d=document.createElement('div');d.className='turn';d.innerHTML=html;body.appendChild(d);cur=d.querySelector('.a')};
+window.reset=o=>{$('q').textContent=o.q;$('label').textContent=o.label||'';body.innerHTML='';newTurn('<div class="a">'+STATUS+'</div>');
+  body.scrollTop=0;anyOk=false;pin=null;input.value='';foot.classList.remove('on');setBusy(true)};
+window.followUp=q=>{newTurn('<div class="u">'+esc(q)+'</div><div class="a">'+STATUS+'</div>');setBusy(true);
+  pin=cur.parentNode;body.scrollTop=pin.offsetTop-6};
+window.render=t=>{cur.innerHTML=md(t);if(pin)body.scrollTop=pin.offsetTop-6};
+body.addEventListener('wheel',()=>pin=null,{passive:true});
+window.fail=t=>{dropStatus();cur.insertAdjacentHTML('beforeend','<p class="err">'+esc(t)+'</p>')};
+window.finish=ok=>{dropStatus();if(ok)anyOk=true;setBusy(false);if(anyOk)foot.classList.add('on')};
+const submit=()=>{const q=input.value.trim();if(busy||!q)return;input.value='';post({type:'ask',q})};
+input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing&&e.keyCode!==229){e.preventDefault();submit()}});
+input.addEventListener('input',grow);
+input.addEventListener('focus',()=>post({type:'focus'}));
+// 输入法选词时 Esc 要留给输入法取消候选，先让 Lua 停掉全局 Esc 关窗
+input.addEventListener('compositionstart',()=>post({type:'composing',on:true}));
+input.addEventListener('compositionend',()=>post({type:'composing',on:false}));
+send.onclick=submit;
+// 浮窗不激活 Hammerspoon，系统菜单的 ⌘V / ⌘C 不一定送得到，常用的几个编辑快捷键自己处理
+const selText=()=>document.activeElement===input?input.value.slice(input.selectionStart,input.selectionEnd):String(getSelection());
+window.pasteText=t=>{if(document.activeElement===input&&!input.disabled){document.execCommand('insertText',false,t);grow()}};
+document.addEventListener('keydown',e=>{
+  if(!e.metaKey||e.ctrlKey||e.altKey)return;
+  const k=e.key.toLowerCase(),inInput=document.activeElement===input;
+  if(k==='c'||(k==='x'&&inInput)){const t=selText();if(!t)return;e.preventDefault();post({type:'setClipboard',text:t});if(k==='x'&&!input.disabled){document.execCommand('delete');grow()}}
+  else if(k==='v'&&inInput){e.preventDefault();post({type:'paste'})}
+  else if(k==='a'){e.preventDefault();if(inInput)input.select();else getSelection().selectAllChildren(body)}
+  else if(k==='z'&&inInput){e.preventDefault();document.execCommand(e.shiftKey?'redo':'undo');grow()}
+});
 $('copy').onclick=()=>{post({type:'copy'});$('copy').innerHTML=CHECK;setTimeout(()=>$('copy').innerHTML=COPY,1200)};
-$('close').onclick=()=>post({type:'close'});
+$('close').onclick=()=>post({type:'close',refocus:true});
 new ResizeObserver(()=>post({type:'height',h:Math.ceil(document.body.getBoundingClientRect().height)})).observe(document.body);
 post({type:'ready'});
 </script></body></html>
