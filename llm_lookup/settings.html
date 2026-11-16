@@ -110,10 +110,10 @@ input[type=range]::-webkit-slider-thumb{appearance:none;width:18px;height:18px;b
 
 <header class="hero">
   <div class="icon"><svg viewBox="0 0 28 28" stroke-linecap="round" stroke-linejoin="round"><path fill="#fff" stroke="#fff" stroke-width="1.2" d="M6.5 5.5h15a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-7l-5 4v-4h-3a3 3 0 0 1-3-3v-8a3 3 0 0 1 3-3z"/><path fill="none" stroke="#2a7df6" stroke-width="1.9" d="M9 10.5h10M9 14.5h6"/></svg></div>
-  <div><h1>划词查词</h1><p>选中文字后按快捷键，或者在触控板上三指轻点。</p></div>
+  <div><h1>划词查询</h1><p>选中文字后按快捷键，或者在触控板上三指轻点。</p></div>
 </header>
 
-<div class="banner" id="axBanner" hidden><span>Hammerspoon 还没有辅助功能权限，取词和三指轻点都用不了。</span><button class="link" id="openAX">打开设置</button></div>
+<div class="banner" id="axBanner" hidden><span>划词查询还没有辅助功能权限，取词和三指轻点都用不了。</span><button class="link" id="openAX">打开设置</button></div>
 
 <section>
   <div class="sh"><h2>模型配置</h2></div>
@@ -131,7 +131,7 @@ input[type=range]::-webkit-slider-thumb{appearance:none;width:18px;height:18px;b
 <section>
   <div class="sh"><h2>触发方式</h2></div>
   <div class="group">
-    <div class="row"><div class="t">快捷键<small>有选中文字就查选中的，没有就查鼠标指着的词</small></div><button class="hotkey" id="hotkey"></button></div>
+    <div class="row"><div class="t">快捷键<small>有选中文字就查选中的，没有就查鼠标指着的词；快速按两下打开问答框</small></div><button class="hotkey" id="hotkey"></button></div>
     <div class="row"><div class="t">三指轻点<small>和快捷键一样：有选中就查选中的，没有就查手指下的词</small></div><label class="switch"><input type="checkbox" id="threeFingerTap"><span></span></label></div>
     <div class="row"><div class="t">读不到文字时模拟双击取词<small>快捷键和三指轻点都会用，比如 Chrome 网页、Cursor 里没选中文字的时候</small></div><label class="switch"><input type="checkbox" id="doubleClickFallback"><span></span></label></div>
   </div>
@@ -139,10 +139,26 @@ input[type=range]::-webkit-slider-thumb{appearance:none;width:18px;height:18px;b
 </section>
 
 <section>
+  <div class="sh"><h2>问答与历史</h2><button class="link" id="openHistory">查看历史记录</button></div>
+  <div class="group">
+    <div class="row"><div class="t">问答框联网搜索<small>快速按两下快捷键打开的问答框里，由模型决定要不要联网；查词不联网</small></div><label class="switch"><input type="checkbox" id="webSearch"><span></span></label></div>
+    <div class="row"><div class="t">保存历史记录<small>查词和问答都存在本机，可以在菜单栏「历史记录…」里查看、接着问</small></div><label class="switch"><input type="checkbox" id="saveHistory"><span></span></label></div>
+  </div>
+  <p class="foot">命令行来源不支持联网。OpenAI 来源联网时改用 Responses 接口，接口不支持的话会注明一句、直接回答。历史记录在 <code>~/Library/Application Support/llm-lookup</code>，最多保留 500 条。</p>
+</section>
+
+<section>
   <div class="sh"><h2>浮窗</h2></div>
   <div class="group">
     <div class="row"><div class="t">宽度</div><div class="slider"><input type="range" id="width" min="360" max="640" step="10"><output id="widthOut"></output></div></div>
     <div class="row"><div class="t">最大高度</div><div class="slider"><input type="range" id="maxHeight" min="320" max="800" step="20"><output id="maxHeightOut"></output></div></div>
+  </div>
+</section>
+
+<section>
+  <div class="sh"><h2>通用</h2></div>
+  <div class="group">
+    <div class="row"><div class="t">登录时自动打开<small>开机后在后台运行，菜单栏显示图标</small></div><label class="switch"><input type="checkbox" id="autoLaunch"><span></span></label></div>
   </div>
 </section>
 
@@ -316,6 +332,8 @@ document.addEventListener('keydown',e=>{
     post({type:'hotkey',mods,key});
     return;
   }
+  // 运行时自带的菜单里 ⌘, ⌘O ⌘R ⌘P 会打开它自己的设置、配置文件、控制台和打印，拦下来
+  if(e.metaKey&&['Comma','KeyO','KeyR','KeyP'].includes(e.code)){e.preventDefault();return}
   if(!e.metaKey||e.ctrlKey||e.altKey)return;
   const k=e.key.toLowerCase(),el=document.activeElement;
   if(k==='w'){e.preventDefault();post({type:'close'});return}
@@ -348,6 +366,10 @@ function slider(id){
 }
 $('threeFingerTap').onchange=e=>{S.threeFingerTap=e.target.checked;set('threeFingerTap',S.threeFingerTap);$('lookupWarn').hidden=!(S.threeFingerTap&&S.systemLookupOn)};
 $('doubleClickFallback').onchange=e=>set('doubleClickFallback',e.target.checked);
+$('webSearch').onchange=e=>set('webSearch',e.target.checked);
+$('saveHistory').onchange=e=>set('saveHistory',e.target.checked);
+$('autoLaunch').onchange=e=>post({type:'autoLaunch',on:e.target.checked});
+$('openHistory').onclick=()=>post({type:'openHistory'});
 $('prompt').addEventListener('input',debounce(()=>set('prompt',$('prompt').value),600));
 $('resetPrompt').onclick=()=>post({type:'resetPrompt'});
 $('openAX').onclick=()=>post({type:'openAX'});
@@ -363,6 +385,9 @@ window.load=state=>{
   if(!recording)$('hotkey').textContent=hotkeyLabel(S.hotkey);
   $('threeFingerTap').checked=S.threeFingerTap;
   $('doubleClickFallback').checked=S.doubleClickFallback;
+  $('webSearch').checked=S.webSearch;
+  $('saveHistory').checked=S.saveHistory;
+  $('autoLaunch').checked=S.autoLaunch;
   slider('width');slider('maxHeight');
   if(document.activeElement!==$('prompt'))$('prompt').value=S.prompt;
 };

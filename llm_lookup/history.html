@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><style>
+:root{color-scheme:light dark;
+  --window:#f6f6f8;--side:#ececef;--sep:rgba(0,0,0,.08);
+  --label:rgba(0,0,0,.86);--secondary:rgba(0,0,0,.5);--tertiary:rgba(0,0,0,.28);
+  --field:#fff;--field-edge:rgba(0,0,0,.15);--fill:rgba(0,0,0,.045);--hover:rgba(0,0,0,.06);--control-hover:rgba(0,0,0,.09);
+  --accent:#007aff;--accent-soft:rgba(0,122,255,.3);--mark:rgba(255,204,0,.35);--red:#d70015}
+@media (prefers-color-scheme:dark){:root{
+  --window:#1d1d1f;--side:#262628;--sep:rgba(255,255,255,.08);
+  --label:rgba(255,255,255,.88);--secondary:rgba(255,255,255,.52);--tertiary:rgba(255,255,255,.26);
+  --field:rgba(255,255,255,.07);--field-edge:rgba(255,255,255,.1);--fill:rgba(255,255,255,.07);--hover:rgba(255,255,255,.07);--control-hover:rgba(255,255,255,.13);
+  --accent:#0a84ff;--accent-soft:rgba(10,132,255,.4);--mark:rgba(255,214,10,.3);--red:#ff453a}}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--window)}
+body{display:flex;font:13px/1.45 -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;color:var(--label);-webkit-font-smoothing:antialiased;cursor:default;-webkit-user-select:none}
+[hidden]{display:none!important}
+
+aside{flex:none;width:290px;display:flex;flex-direction:column;background:var(--side);border-right:.5px solid var(--sep)}
+.search{position:relative;padding:12px 12px 6px}
+.search svg{position:absolute;left:21px;top:20px;width:12px;height:12px;fill:none;stroke:var(--secondary);stroke-width:1.6;stroke-linecap:round}
+#q{width:100%;height:28px;padding:0 10px 0 27px;font:inherit;color:var(--label);background:var(--field);border:0;outline:0;border-radius:7px;
+  box-shadow:0 0 0 .5px var(--field-edge);transition:box-shadow .15s;-webkit-user-select:text;cursor:text}
+#q:focus{box-shadow:0 0 0 .5px var(--accent),0 0 0 3.5px var(--accent-soft)}
+#q::placeholder{color:var(--tertiary)}
+#list{flex:1;overflow-y:auto;padding:0 8px 8px}
+.day{margin:12px 10px 4px;font-size:11px;font-weight:600;color:var(--secondary)}
+.item{padding:7px 10px 8px;border-radius:8px;margin-bottom:1px}
+.item:hover{background:var(--hover)}
+.item.sel{background:var(--accent);color:#fff}
+.top{display:flex;align-items:center;gap:6px}
+.title{flex:1;min-width:0;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item time{flex:none;font-size:11px;color:var(--secondary);font-variant-numeric:tabular-nums}
+.pre{margin-top:2px;font-size:12px;color:var(--secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item.sel time,.item.sel .pre{color:rgba(255,255,255,.78)}
+.badge{flex:none;padding:0 5px;border-radius:4px;font-size:10px;font-weight:600;line-height:16px;background:var(--fill);color:var(--secondary)}
+.badge.ask{background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent)}
+.item.sel .badge{background:rgba(255,255,255,.22);color:#fff}
+.none{margin:28px 0;text-align:center;color:var(--tertiary)}
+.side-foot{flex:none;display:flex;align-items:center;justify-content:space-between;height:34px;padding:0 14px;border-top:.5px solid var(--sep);font-size:11.5px;color:var(--secondary)}
+
+main{flex:1;min-width:0;display:flex;flex-direction:column}
+#detail{flex:1;min-height:0;display:flex;flex-direction:column}
+header{flex:none;display:flex;align-items:center;gap:8px;padding:14px 18px 12px 24px;border-bottom:.5px solid var(--sep)}
+.h{flex:1;min-width:0}
+#title{font-size:15px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#meta{margin-top:1px;font-size:11.5px;color:var(--secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.push{all:unset;flex:none;height:26px;padding:0 12px;border-radius:6px;background:var(--field);font-size:12.5px;white-space:nowrap;
+  box-shadow:0 0 0 .5px var(--field-edge),0 .5px 1.5px rgba(0,0,0,.08);transition:background .15s}
+.push:hover{background:var(--control-hover)}
+.push.primary{background:var(--accent);color:#fff;box-shadow:none}
+.push.primary:hover{background:color-mix(in srgb,var(--accent) 88%,#000)}
+.push.danger{color:var(--red)}
+.link{all:unset;color:var(--accent);font-size:11.5px}
+.link:hover{text-decoration:underline}
+.link.danger{color:var(--red)}
+
+#conv{flex:1;overflow-y:auto;padding:18px 24px 30px;line-height:1.65;-webkit-user-select:text;cursor:auto}
+.turn+.turn{margin-top:16px;padding-top:16px;border-top:.5px solid var(--sep)}
+.src{margin:0 0 10px;padding:6px 12px;border-left:2px solid var(--sep);color:var(--secondary);white-space:pre-wrap;word-break:break-word}
+.src mark{background:var(--mark);color:inherit;border-radius:3px;padding:0 1px}
+.u{display:inline-block;max-width:100%;margin:0 0 8px;padding:5px 11px;border-radius:8px;background:var(--fill);font-weight:500;white-space:pre-wrap;word-break:break-word}
+.a>:first-child{margin-top:0}.a>:last-child{margin-bottom:0}
+.a p{margin:0 0 7px}
+.a ul,.a ol{margin:2px 0 9px;padding-left:20px}
+.a li{margin:3px 0;padding-left:2px}
+.a li::marker{color:var(--tertiary)}
+.a h4{margin:14px 0 4px;font-size:12.5px;font-weight:600;color:var(--secondary)}
+.a b{font-weight:600}
+.a code{font:12px/1.4 ui-monospace,"SF Mono",Menlo,monospace;background:var(--fill);border-radius:5px;padding:1px 5px}
+.a pre{font:12px/1.5 ui-monospace,"SF Mono",Menlo,monospace;background:var(--fill);border-radius:8px;padding:9px 12px;margin:6px 0 9px;white-space:pre-wrap;word-break:break-word}
+.a blockquote{margin:6px 0;padding-left:10px;border-left:2px solid var(--sep);color:var(--secondary)}
+.a a{color:var(--accent);text-decoration:none;word-break:break-all;cursor:pointer}
+.a a:hover{text-decoration:underline}
+#empty{flex:1;display:grid;place-items:center;padding:40px;text-align:center;color:var(--tertiary);line-height:1.8}
+
+.toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,8px);padding:7px 14px;border-radius:8px;font-size:12px;
+  background:color-mix(in srgb,var(--label) 88%,transparent);color:var(--window);opacity:0;transition:opacity .2s,transform .2s;pointer-events:none}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+::selection{background:var(--accent-soft)}
+::-webkit-scrollbar{width:11px}
+::-webkit-scrollbar-thumb{background:var(--tertiary);background-clip:content-box;border:3px solid transparent;border-radius:6px}
+</style></head><body>
+<aside>
+  <div class="search"><svg viewBox="0 0 12 12"><circle cx="5" cy="5" r="3.8"/><path d="M8 8l3 3"/></svg><input id="q" type="text" placeholder="搜索" spellcheck="false" autocomplete="off"></div>
+  <div id="list"></div>
+  <div class="side-foot"><span id="count"></span><button class="link danger" id="clear">清空全部</button></div>
+</aside>
+<main>
+  <section id="detail" hidden>
+    <header><div class="h"><div id="title"></div><div id="meta"></div></div>
+      <button class="push primary" id="resume" title="在浮窗里接着这段对话问（双击列表项也行）">继续追问</button>
+      <button class="push" id="copy">复制</button>
+      <button class="push danger" id="remove">删除</button></header>
+    <div id="conv"></div>
+  </section>
+  <div id="empty"></div>
+</main>
+<div class="toast" id="toast"></div>
+<script>
+const post=m=>{try{webkit.messageHandlers.history.postMessage(m)}catch(e){}};
+/*__MD__*/
+const $=id=>document.getElementById(id);
+const KIND={lookup:'查词',ask:'问答'};
+let all=[],shown=[],sel=null,query='',shownKey=null;
+
+let toastTimer;
+function toast(t){const el=$('toast');el.textContent=t;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),1800)}
+
+/* ---------- 时间 ---------- */
+const pad=n=>String(n).padStart(2,'0');
+const day0=d=>new Date(d.getFullYear(),d.getMonth(),d.getDate());
+function dayLabel(t){
+  const d=new Date(t*1000),now=new Date(),diff=Math.round((day0(now)-day0(d))/864e5);
+  if(diff===0)return '今天';if(diff===1)return '昨天';
+  return (d.getFullYear()===now.getFullYear()?'':d.getFullYear()+' 年 ')+(d.getMonth()+1)+' 月 '+d.getDate()+' 日';
+}
+const hm=t=>{const d=new Date(t*1000);return pad(d.getHours())+':'+pad(d.getMinutes())};
+
+/* ---------- 一条记录 ---------- */
+// 查词那条的第一条用户消息是拼好的提示词，还原出原文；上下文里 ⟦⟧ 标着查的词
+function source(c){
+  let m;
+  if(m=c.match(/^请解析下面这段文字：\n"""\n([\s\S]*)\n"""$/))return m[1];
+  if(m=c.match(/^上下文：([\s\S]*?)\n(?:要查的词|我指向的是)/))return m[1];
+  return c;
+}
+// [{src, u, a}]：查词第一轮有 src（原文），问答和追问有 u（问题）
+function turns(r){
+  const out=[];let u=null;
+  for(const m of r.messages||[]){
+    if(m.role==='user'){u=m.content;continue}
+    if(r.kind==='lookup'&&!out.length)out.push({src:u==null?null:source(u),a:m.content});
+    else out.push({u,a:m.content});
+    u=null;
+  }
+  return out;
+}
+const plain=s=>String(s||'').replace(/\[([^\]]+)\]\([^)]+\)/g,'$1').replace(/[*`#>]/g,'').replace(/\s+/g,' ').trim();
+function preview(r){const ms=r.messages||[];for(let i=ms.length-1;i>=0;i--)if(ms[i].role==='assistant')return plain(ms[i].content).slice(0,80);return ''}
+function asText(r){
+  return [r.title].concat(turns(r).map(t=>[t.src!=null?'原文：'+t.src.replace(/[⟦⟧]/g,''):null,t.u!=null?'问：'+t.u:null,t.a].filter(Boolean).join('\n\n'))).join('\n\n---\n\n');
+}
+
+/* ---------- 列表 ---------- */
+function renderList(){
+  const q=query.trim().toLowerCase();
+  shown=q?all.filter(r=>r._hay.includes(q)):all;
+  let html='',day=null;
+  for(const r of shown){
+    const d=dayLabel(r.updated);
+    if(d!==day){day=d;html+='<div class="day">'+d+'</div>'}
+    html+='<div class="item'+(r.id===sel?' sel':'')+'" data-id="'+esc(r.id)+'"><div class="top"><span class="badge '+esc(r.kind)+'">'+(KIND[r.kind]||'')+'</span>'
+      +'<span class="title">'+esc(r.title||'（无标题）')+'</span><time>'+hm(r.updated)+'</time></div><div class="pre">'+esc(preview(r))+'</div></div>';
+  }
+  $('list').innerHTML=html||'<p class="none">'+(all.length?'没有找到':'还没有记录')+'</p>';
+  $('count').textContent=all.length?'共 '+all.length+' 条':'';
+  $('clear').hidden=!all.length;
+}
+function select(id,scroll){
+  if(id===sel)return;
+  sel=id;renderList();renderDetail();
+  if(scroll){const el=$('list').querySelector('.item.sel');if(el)el.scrollIntoView({block:'nearest'})}
+}
+$('list').addEventListener('click',e=>{const it=e.target.closest('.item');if(it)select(it.dataset.id)});
+$('list').addEventListener('dblclick',e=>{const it=e.target.closest('.item');if(it)post({type:'resume',id:it.dataset.id})});
+
+/* ---------- 详情 ---------- */
+const current=()=>all.find(r=>r.id===sel);
+function renderDetail(){
+  const r=current();
+  $('detail').hidden=!r;$('empty').hidden=!!r;
+  if(!r){
+    shownKey=null;
+    $('empty').innerHTML=all.length?'从左边选一条记录':'还没有记录<br>按 ⌥R 查词，或者快速按两下打开问答框，<br>有回答后会自动存在这里';
+    return;
+  }
+  // 别的对话存进来时整个列表会重新加载，正在看的这条没变就不重画，免得滚动位置跳回顶部
+  const key=r.id+':'+r.updated;
+  if(key===shownKey)return;
+  const same=shownKey&&shownKey.startsWith(r.id+':');
+  shownKey=key;
+  $('title').textContent=r.title||'（无标题）';
+  $('meta').textContent=[KIND[r.kind],dayLabel(r.updated)+' '+hm(r.updated),r.profile].filter(Boolean).join(' · ');
+  $('conv').innerHTML=turns(r).map(t=>'<div class="turn">'
+    +(t.src!=null?'<div class="src">'+esc(t.src).replace(/⟦(.*?)⟧/g,'<mark>$1</mark>')+'</div>':'')
+    +(t.u!=null?'<div class="u">'+esc(t.u)+'</div>':'')
+    +'<div class="a">'+md(t.a)+'</div></div>').join('');
+  // 同一条有了新的追问就滚到最后，换了一条就从头看
+  $('conv').scrollTop=same?$('conv').scrollHeight:0;
+  disarm();
+}
+$('resume').onclick=()=>{if(sel)post({type:'resume',id:sel})};
+$('copy').onclick=()=>{const r=current();if(!r)return;post({type:'copy',text:asText(r)});toast('已复制这段对话')};
+
+// 删除、清空都要点两次
+let armed=null,armTimer;
+function disarm(){armed=null;$('remove').textContent='删除';$('clear').textContent='清空全部'}
+function arm(btn,text){armed=btn;btn.textContent=text;clearTimeout(armTimer);armTimer=setTimeout(disarm,3000)}
+$('remove').onclick=()=>{
+  if(armed!==$('remove'))return arm($('remove'),'再点一次删除');
+  const i=shown.findIndex(r=>r.id===sel),next=shown[i+1]||shown[i-1];
+  post({type:'remove',id:sel});sel=next?next.id:null;disarm();
+};
+$('clear').onclick=()=>{
+  if(armed!==$('clear'))return arm($('clear'),'再点一次清空全部');
+  post({type:'clear'});sel=null;disarm();
+};
+
+/* ---------- 搜索 ---------- */
+const search=()=>{query=$('q').value;renderList();
+  if(!shown.some(r=>r.id===sel)&&shown.length)select(shown[0].id);};
+$('q').addEventListener('input',e=>{if(!e.isComposing)search()});
+$('q').addEventListener('compositionend',search);
+
+/* ---------- 键盘 ---------- */
+// Hammerspoon 没有「编辑」菜单，复制粘贴这些自己处理
+document.addEventListener('keydown',e=>{
+  const inQ=document.activeElement===$('q');
+  if(!e.metaKey&&!e.ctrlKey&&!e.altKey){
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+      e.preventDefault();const i=shown.findIndex(r=>r.id===sel),j=i+(e.key==='ArrowDown'?1:-1);
+      if(shown[j])select(shown[j].id,true);return;
+    }
+    if(e.key==='Enter'&&!e.isComposing&&sel){e.preventDefault();post({type:'resume',id:sel});return}
+    if(e.key==='Escape'&&inQ&&$('q').value){e.preventDefault();$('q').value='';search();return}
+    return;
+  }
+  // 运行时自带的菜单里 ⌘, ⌘O ⌘R ⌘P 会打开它自己的设置、配置文件、控制台和打印，拦下来
+  if(e.metaKey&&['Comma','KeyO','KeyR','KeyP'].includes(e.code)){e.preventDefault();return}
+  if(!e.metaKey||e.ctrlKey||e.altKey)return;
+  const k=e.key.toLowerCase(),q=$('q');
+  if(k==='w'){e.preventDefault();post({type:'close'})}
+  else if(k==='f'){e.preventDefault();q.focus();q.select()}
+  else if(k==='a'){e.preventDefault();if(inQ)q.select();else getSelection().selectAllChildren($('conv'))}
+  else if(k==='c'||k==='x'){
+    const t=inQ?q.value.slice(q.selectionStart,q.selectionEnd):String(getSelection());
+    if(!t)return;e.preventDefault();post({type:'copy',text:t});
+    if(k==='x'&&inQ){q.setRangeText('',q.selectionStart,q.selectionEnd,'end');search()}
+  }
+  else if(k==='v'&&inQ){e.preventDefault();post({type:'paste'})}
+},true);
+window.pasteText=t=>{const q=$('q');if(!t)return;q.focus();q.setRangeText(t.replace(/\s+/g,' '),q.selectionStart,q.selectionEnd,'end');search()};
+document.addEventListener('click',e=>{const a=e.target.closest('a[href]');if(a){e.preventDefault();post({type:'open',url:a.href})}});
+
+/* ---------- Lua 调过来的 ---------- */
+window.load=list=>{
+  all=Array.isArray(list)?list:[];
+  for(const r of all)r._hay=((r.title||'')+'\n'+(r.messages||[]).map(m=>m.content).join('\n')).toLowerCase();
+  if(!all.some(r=>r.id===sel))sel=all.length?all[0].id:null;
+  renderList();renderDetail();
+};
+post({type:'ready'});
+</script></body></html>

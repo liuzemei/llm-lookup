@@ -24,7 +24,7 @@ button svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.4
 .turn+.turn{margin-top:12px;padding-top:12px;border-top:.5px solid var(--sep)}
 .u{margin:0 0 8px;padding:5px 10px;border-radius:8px;background:var(--fill);font-weight:500;white-space:pre-wrap;word-break:break-word}
 #body p{margin:0 0 6px}
-.turn:first-child>.a>p:first-child>b:first-child{font-size:15px;letter-spacing:-.01em}
+.turn:first-child>.a:first-child>p:first-child>b:first-child{font-size:15px;letter-spacing:-.01em}
 #body ul,#body ol{margin:2px 0 8px;padding-left:18px}
 #body li{margin:3px 0;padding-left:2px}
 #body li::marker{color:var(--tertiary)}
@@ -33,6 +33,8 @@ button svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.4
 #body code{font:12px/1.4 ui-monospace,"SF Mono",Menlo,monospace;background:var(--fill);border-radius:5px;padding:1px 5px}
 #body pre{font:12px/1.5 ui-monospace,"SF Mono",Menlo,monospace;background:var(--fill);border-radius:8px;padding:8px 10px;margin:6px 0 8px;white-space:pre-wrap;word-break:break-word}
 #body blockquote{margin:6px 0;padding-left:10px;border-left:2px solid var(--sep);color:var(--secondary)}
+#body a{color:var(--accent);text-decoration:none;word-break:break-all;cursor:pointer}
+#body a:hover{text-decoration:underline}
 ::selection{background:color-mix(in srgb,var(--accent) 28%,transparent)}
 ::-webkit-scrollbar{width:11px}
 ::-webkit-scrollbar-thumb{background:var(--tertiary);background-clip:content-box;border:3px solid transparent;border-radius:6px}
@@ -41,6 +43,8 @@ button svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.4
 @keyframes shimmer{from{background-position:100% 0}to{background-position:0 0}}
 #foot{flex:none;display:none;align-items:flex-end;gap:6px;padding:7px 7px 7px 16px;border-top:.5px solid var(--sep)}
 #foot.on{display:flex}
+#body:empty{display:none}
+#body:empty+#foot{border-top:0}
 #ask{all:unset;display:block;flex:1;min-width:0;min-height:20px;max-height:100px;padding:2px 0;overflow-y:auto;
   font:13px/20px -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;color:var(--label);white-space:pre-wrap;word-break:break-word;-webkit-user-select:text;cursor:text}
 #ask::placeholder{color:var(--tertiary)}
@@ -58,38 +62,27 @@ button svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.4
 <button id="send" title="发送（↩）"><svg viewBox="0 0 16 16"><path d="M8 13V3.5M4 7.5l4-4 4 4"/></svg></button></div></div>
 <script>
 const post=m=>{try{webkit.messageHandlers.lookup.postMessage(m)}catch(e){}};
-const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const inline=s=>esc(s).replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/(^|[^*\w])\*(?!\s)(.+?)\*(?!\w)/g,'$1<i>$2</i>');
-function md(src){
-  const out=[];let list=null,code=null;
-  const close=()=>{if(list){out.push('</'+list+'>');list=null}};
-  for(const raw of src.split('\n')){
-    if(code!==null){if(/^\s*```/.test(raw)){out.push('<pre>'+esc(code)+'</pre>');code=null}else code+=(code?'\n':'')+raw;continue}
-    if(/^\s*```/.test(raw)){close();code='';continue}
-    const line=raw.trimEnd();let m;
-    if(!line.trim()){close();continue}
-    if(m=line.match(/^#{1,6}\s+(.*)/)){close();out.push('<h4>'+inline(m[1])+'</h4>');continue}
-    if(m=line.match(/^\s*[-*•]\s+(.*)/)){if(list!=='ul'){close();out.push('<ul>');list='ul'}out.push('<li>'+inline(m[1])+'</li>');continue}
-    if(m=line.match(/^\s*\d+[.)]\s+(.*)/)){if(list!=='ol'){close();out.push('<ol>');list='ol'}out.push('<li>'+inline(m[1])+'</li>');continue}
-    if(list&&/^\s+\S/.test(raw)){out[out.length-1]=out[out.length-1].replace(/<\/li>$/,'<br>'+inline(line.trim())+'</li>');continue}
-    if(m=line.match(/^>\s?(.*)/)){close();out.push('<blockquote>'+inline(m[1])+'</blockquote>');continue}
-    close();out.push('<p>'+inline(line)+'</p>');
-  }
-  if(code!==null)out.push('<pre>'+esc(code)+'</pre>');
-  close();return out.join('');
-}
+/*__MD__*/
 const $=id=>document.getElementById(id);
 const COPY=$('copy').innerHTML,CHECK='<svg viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-7"/></svg>';
 const STATUS='<p class="status">正在思考…</p>';
 const body=$('body'),input=$('ask'),send=$('send'),foot=$('foot');
 let cur=null,busy=false,anyOk=false,pin=null; // pin：追问那一轮，回答流式变长时让问题保持在顶部
+let hint='继续追问…';
 const dropStatus=()=>{const s=body.querySelector('.status');if(s)s.remove()};
 const grow=()=>{input.style.height='auto';input.style.height=input.scrollHeight+'px';send.classList.toggle('go',!busy&&!!input.value.trim())};
-const setBusy=b=>{busy=b;input.disabled=b;input.placeholder=b?'正在回答…':'继续追问…';grow()};
+const setBusy=b=>{busy=b;input.disabled=b;input.placeholder=b?'正在回答…':hint;grow()};
 const newTurn=html=>{const d=document.createElement('div');d.className='turn';d.innerHTML=html;body.appendChild(d);cur=d.querySelector('.a')};
-window.reset=o=>{$('q').textContent=o.q;$('label').textContent=o.label||'';body.innerHTML='';newTurn('<div class="a">'+STATUS+'</div>');
-  body.scrollTop=0;anyOk=false;pin=null;input.value='';foot.classList.remove('on');setBusy(true)};
-window.followUp=q=>{newTurn('<div class="u">'+esc(q)+'</div><div class="a">'+STATUS+'</div>');setBusy(true);
+// o.ask：问答框，一开始没有内容，输入框直接可用；o.turns：从历史记录恢复的对话 [{u, a}]，查词那一轮没有 u
+window.reset=o=>{$('q').textContent=o.q;$('label').textContent=o.label||'';body.innerHTML='';body.scrollTop=0;pin=null;input.value='';
+  if(o.turns){hint='继续追问…';for(const t of o.turns)newTurn((t.u!=null?'<div class="u">'+esc(t.u)+'</div>':'')+'<div class="a">'+md(t.a)+'</div>');
+    anyOk=true;foot.classList.add('on');setBusy(false);requestAnimationFrame(()=>body.scrollTop=body.scrollHeight)}
+  else if(o.ask){hint='问点什么…';anyOk=true;foot.classList.add('on');setBusy(false)}
+  else{hint='继续追问…';newTurn('<div class="a">'+STATUS+'</div>');anyOk=false;foot.classList.remove('on');setBusy(true)}};
+// 正在联网搜索之类的进度：在当前回答末尾显示一行闪动的提示，有新内容时 render 会把它换掉
+window.note=t=>{let s=cur.querySelector('.status');if(!s){cur.insertAdjacentHTML('beforeend','<p class="status"></p>');s=cur.lastElementChild}s.textContent=t};
+window.focusAsk=()=>input.focus();
+window.followUp=q=>{hint='继续追问…';newTurn('<div class="u">'+esc(q)+'</div><div class="a">'+STATUS+'</div>');setBusy(true);
   pin=cur.parentNode;body.scrollTop=pin.offsetTop-6};
 window.render=t=>{cur.innerHTML=md(t);if(pin)body.scrollTop=pin.offsetTop-6};
 body.addEventListener('wheel',()=>pin=null,{passive:true});
@@ -107,6 +100,8 @@ send.onclick=submit;
 const selText=()=>document.activeElement===input?input.value.slice(input.selectionStart,input.selectionEnd):String(getSelection());
 window.pasteText=t=>{if(document.activeElement===input&&!input.disabled){document.execCommand('insertText',false,t);grow()}};
 document.addEventListener('keydown',e=>{
+  // 运行时自带的菜单里 ⌘, ⌘O ⌘R ⌘P 会打开它自己的设置、配置文件、控制台和打印，拦下来
+  if(e.metaKey&&['Comma','KeyO','KeyR','KeyP'].includes(e.code)){e.preventDefault();return}
   if(!e.metaKey||e.ctrlKey||e.altKey)return;
   const k=e.key.toLowerCase(),inInput=document.activeElement===input;
   if(k==='c'||(k==='x'&&inInput)){const t=selText();if(!t)return;e.preventDefault();post({type:'setClipboard',text:t});if(k==='x'&&!input.disabled){document.execCommand('delete');grow()}}
@@ -114,6 +109,8 @@ document.addEventListener('keydown',e=>{
   else if(k==='a'){e.preventDefault();if(inInput)input.select();else getSelection().selectAllChildren(body)}
   else if(k==='z'&&inInput){e.preventDefault();document.execCommand(e.shiftKey?'redo':'undo');grow()}
 });
+// 链接交给 Lua 用默认浏览器打开，浮窗自己不跳转
+document.addEventListener('click',e=>{const a=e.target.closest('a[href]');if(a){e.preventDefault();post({type:'open',url:a.href})}});
 $('copy').onclick=()=>{post({type:'copy'});$('copy').innerHTML=CHECK;setTimeout(()=>$('copy').innerHTML=COPY,1200)};
 $('close').onclick=()=>post({type:'close',refocus:true});
 new ResizeObserver(()=>post({type:'height',h:Math.ceil(document.body.getBoundingClientRect().height)})).observe(document.body);

@@ -381,7 +381,8 @@ end
 
 -- 顺序：选中文字(AX) → 鼠标下的文字(AX) → ⌘C → 双击选词再 ⌘C
 -- cb(q, why)：q.via 记下是哪一步拿到的，why 是没拿到的原因，都只用于日志
-function K.acquire(selSnapshot, pos, cb)
+-- holdDoubleClick(go)：可选，模拟双击前先交给它，它可以等一会儿再调 go()，或者不调就此作罢
+function K.acquire(selSnapshot, pos, cb, holdDoubleClick)
   local ok, sel = pcall(K.selectedText)
   sel = selSnapshot or (ok and sel)
   if sel then return cb({ kind = "selection", text = sel, via = selSnapshot and "snapshot" or "selection" }) end
@@ -397,10 +398,13 @@ function K.acquire(selSnapshot, pos, cb)
   local function doubleClick()
     local okD, can = pcall(canDoubleClick, pos)
     if not (config.values.doubleClickFallback and okD and can) then return cb(nil, "no-double-click") end
-    doubleClickCopy(pos, function(w)
-      if w and w:find("%S") then return cb({ kind = "selection", text = w, via = "double-click" }) end
-      cb(nil, "double-click")
-    end)
+    local function go()
+      doubleClickCopy(pos, function(w)
+        if w and w:find("%S") then return cb({ kind = "selection", text = w, via = "double-click" }) end
+        cb(nil, "double-click")
+      end)
+    end
+    if holdDoubleClick then holdDoubleClick(go) else go() end
   end
   local okN, none = pcall(noSelection)
   if okN and none then return doubleClick() end
