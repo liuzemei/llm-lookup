@@ -32,6 +32,7 @@ local function state()
     width = v.width, maxHeight = v.maxHeight, prompt = config.prompt(),
     systemLookupOn = U.trim(tap or "") == "2",
     axTrusted = hs.accessibilityState(),
+    autoLaunch = hs.autoLaunch(),
   }
 end
 
@@ -133,6 +134,9 @@ function handlers.recording(m)
   if S.hooks.onRecording then S.hooks.onRecording(m.on == true) end
 end
 
+-- 登录项是系统的设置，不存进配置
+function handlers.autoLaunch(m) hs.autoLaunch(m.on == true) end
+
 function handlers.resetPrompt()
   config.set("prompt", "")
   js("load", state())
@@ -176,7 +180,7 @@ function S.open()
   wv = hs.webview.new({ x = sf.x + (sf.w - w) / 2, y = sf.y + (sf.h - h) / 2, w = w, h = h }, {}, uc)
       :windowStyle({ "titled", "closable", "miniaturizable", "fullSizeContentView" })
       :darkMode(hs.host.interfaceStyle() == "Dark")
-      :windowTitle("划词查词")
+      :windowTitle("划词查询")
       :allowTextEntry(true)
       :deleteOnClose(true)
       :windowCallback(function(action)

@@ -87,8 +87,20 @@ local function migrate(saved)
   return saved
 end
 
+-- 打包成独立 App 之前直接跑在 Hammerspoon 里，配置在它的偏好设置里；第一次启动时搬过来
+local LEGACY_ID = "org.hammerspoon.Hammerspoon"
+
+local function legacy()
+  if hs.processInfo.bundleID == LEGACY_ID then return nil end
+  local ok, prefs = pcall(hs.plist.read, os.getenv("HOME") .. "/Library/Preferences/" .. LEGACY_ID .. ".plist")
+  local saved = ok and type(prefs) == "table" and prefs[KEY] or nil
+  if type(saved) == "table" then hs.settings.set(KEY, saved) end
+  return saved
+end
+
 function C.load()
   local saved = hs.settings.get(KEY)
+  if saved == nil then saved = legacy() end
   saved = type(saved) == "table" and migrate(saved) or {}
   C.values = merge(copy(DEFAULTS), saved)
   if not C.find(C.values.active) then C.values.active = C.values.profiles[1].id end

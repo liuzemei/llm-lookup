@@ -100,6 +100,8 @@ send.onclick=submit;
 const selText=()=>document.activeElement===input?input.value.slice(input.selectionStart,input.selectionEnd):String(getSelection());
 window.pasteText=t=>{if(document.activeElement===input&&!input.disabled){document.execCommand('insertText',false,t);grow()}};
 document.addEventListener('keydown',e=>{
+  // 运行时自带的菜单里 ⌘, ⌘O ⌘R ⌘P 会打开它自己的设置、配置文件、控制台和打印，拦下来
+  if(e.metaKey&&['Comma','KeyO','KeyR','KeyP'].includes(e.code)){e.preventDefault();return}
   if(!e.metaKey||e.ctrlKey||e.altKey)return;
   const k=e.key.toLowerCase(),inInput=document.activeElement===input;
   if(k==='c'||(k==='x'&&inInput)){const t=selText();if(!t)return;e.preventDefault();post({type:'setClipboard',text:t});if(k==='x'&&!input.disabled){document.execCommand('delete');grow()}}

@@ -3,8 +3,8 @@
 --   快捷键（默认 ⌥R） 有选中文字就查选中的，没有就查鼠标指着的词
 --   快速按两下快捷键  不取文字，弹出问答框直接提问，可以联网搜索
 --   三指轻点          同快捷键按一下（需要在 系统设置 › 触控板 关掉「查询与数据检测器」）
---   菜单栏图标        切换模型配置、打开设置面板和历史记录；配置都存在 Hammerspoon 的偏好设置里
---   打开 App          直接是设置面板（App 文件夹改名成了「划词查词.app」）
+--   菜单栏图标        切换模型配置、打开设置面板和历史记录；按住 ⌥ 点开多出重新载入和调试控制台
+--   打开 App          直接是设置面板（「划词查询.app」由仓库根目录的 install.sh 生成）
 
 local config = require("llm_lookup.config")
 local U = require("llm_lookup.util")
@@ -327,8 +327,8 @@ local function setupMenubar()
   else
     menubar:setTitle("译")
   end
-  menubar:setTooltip("划词查词")
-  menubar:setMenu(function()
+  menubar:setTooltip("划词查询")
+  menubar:setMenu(function(mods)
     local v = config.values
     local items = { { title = "模型配置", disabled = true } }
     for _, p in ipairs(v.profiles) do
@@ -350,12 +350,15 @@ local function setupMenubar()
       { title = "历史记录…", fn = historyView.open },
       { title = "设置…", fn = settings.open },
       { title = "-" },
-      -- Hammerspoon 自己的菜单栏图标隐藏了，常用的两项放到这里
-      { title = "重新载入", fn = hs.reload },
-      { title = "调试控制台", fn = function() hs.openConsole(true) end },
     }) do
       items[#items + 1] = item
     end
+    -- 运行时自己的菜单栏图标隐藏了，开发用的两项放到这里，按住 ⌥ 点开才显示
+    if mods and mods.alt then
+      items[#items + 1] = { title = "重新载入", fn = hs.reload }
+      items[#items + 1] = { title = "调试控制台", fn = function() hs.openConsole(true) end }
+    end
+    items[#items + 1] = { title = "退出划词查询", fn = function() os.exit(true, true) end }
     return items
   end)
 end
@@ -416,6 +419,8 @@ function M.start()
   wakeWatcher:start()
   -- 菜单栏只留一个图标：隐藏 Hammerspoon 自带的
   hs.menuIcon(false)
+  -- 没有辅助功能权限时，运行时载完配置会弹出它自己的偏好设置窗口；下一轮就关掉，权限由设置面板顶部提示
+  U.after(0, hs.closePreferences)
   setupMenubar()
   -- App 已经在运行时再打开它（访达、聚焦、启动台），系统发的是「重新打开」：弹设置面板，不弹控制台
   hs.openConsoleOnDockClick(false)

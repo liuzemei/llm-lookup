@@ -225,6 +225,8 @@ document.addEventListener('keydown',e=>{
     if(e.key==='Escape'&&inQ&&$('q').value){e.preventDefault();$('q').value='';search();return}
     return;
   }
+  // 运行时自带的菜单里 ⌘, ⌘O ⌘R ⌘P 会打开它自己的设置、配置文件、控制台和打印，拦下来
+  if(e.metaKey&&['Comma','KeyO','KeyR','KeyP'].includes(e.code)){e.preventDefault();return}
   if(!e.metaKey||e.ctrlKey||e.altKey)return;
   const k=e.key.toLowerCase(),q=$('q');
   if(k==='w'){e.preventDefault();post({type:'close'})}
