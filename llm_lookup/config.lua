@@ -17,6 +17,12 @@ C.DEFAULT_PROMPT = [[
 -- 有追问时接在系统提示后面
 C.FOLLOWUP_PROMPT = "用户可能会就这段文字继续追问。回答追问时直接、简洁地回应问题本身，不必再套用上面的输出格式，仍然输出 Markdown。"
 
+-- 快速按两下快捷键打开的问答框用这段，不套查词的格式
+C.ASK_PROMPT = "你是 macOS 上随手提问的助手，用户在一个小浮窗里提问。直接回答问题本身：不寒暄，不复述问题，不加结尾总结。默认用简体中文回答，用户用别的语言提问时用同一种语言。输出 Markdown，尽量紧凑；需要代码时给出能直接用的代码块。"
+
+-- 问答框允许联网时接在后面；接口不支持搜索、退回普通回答时模型也看得懂
+C.SEARCH_PROMPT = "如果你有联网搜索工具：问题涉及最新信息、实时数据，或你没把握的事实时，先搜索再回答，不相关的问题不要搜。用了搜索的话，在末尾单独一行写「来源：」，列出 1–3 个最相关的链接，格式 [标题](网址)。"
+
 C.PROVIDER_NAMES = { claude = "Claude Code", codex = "Codex", command = "命令行", openai = "OpenAI", anthropic = "Anthropic" }
 
 -- 每种来源的参数和默认值；model / effort 留空表示用对方的默认值；API Key 不在这里，存在钥匙串里
@@ -38,6 +44,8 @@ local DEFAULTS = {
   threeFingerTap = true,
   doubleClickFallback = true, -- 只在按快捷键时用：读不到文字就模拟双击选词
   enableChromiumAX = true,    -- 给 Electron 应用打开辅助功能树，才能读到里面的文字
+  webSearch = true,           -- 问答框里允许模型联网搜索（查词不搜，保持速度）
+  saveHistory = true,         -- 查词和问答存进本机的历史记录
   width = 460,
   maxHeight = 560,
   prompt = "",                -- 空 = 用 DEFAULT_PROMPT

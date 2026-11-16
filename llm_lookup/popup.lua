@@ -59,10 +59,13 @@ local function ensure()
       if b.on then escKey:disable() elseif wv and wv:isVisible() then escKey:enable() end
     elseif b.type == "ask" then
       if P.onAsk and type(b.q) == "string" then P.onAsk(b.q) end
+    elseif b.type == "open" then
+      if type(b.url) == "string" and b.url:match("^https?://") then hs.urlevent.openURL(b.url) end
     end
   end)
   local v = config.values
   local html = U.readFile("popup.html"):gsub("__PAD__", tostring(PAD)):gsub("__MAXCARD__", tostring(v.maxHeight))
+      :gsub("/%*__MD__%*/", function() return U.readFile("md.js") end)
   wv = hs.webview.new({ x = 0, y = 0, w = v.width + 2 * PAD, h = 100 }, {}, uc)
       :windowStyle({ "borderless", "nonactivating" })
       :transparent(true)
@@ -94,7 +97,9 @@ local clickWatcher = hs.eventtap.new({ types.leftMouseDown, types.rightMouseDown
   return false
 end)
 
-function P.show(pos, title, label)
+-- opts.ask：问答框，打开就是空白的输入框；opts.turns：从历史记录恢复的对话 { {u = 问题或 nil, a = 回答}, ... }
+function P.show(pos, title, label, opts)
+  opts = opts or {}
   local v = config.values
   local sf = hs.mouse.getCurrentScreen():frame()
   local w = v.width + 2 * PAD
@@ -110,9 +115,11 @@ function P.show(pos, title, label)
   ensure()
   P.text = ""
   prevWin, typed = hs.window.focusedWindow(), false
-  js("reset", { q = title, label = label })
+  js("reset", { q = title, label = label, ask = opts.ask, turns = opts.turns })
   setHeight(110)
   wv:show()
+  -- 浮窗不激活 Hammerspoon 也能成为键盘焦点，直接把光标放进输入框
+  if opts.ask or opts.turns then js("focusAsk") end
   escKey:enable()
   clickWatcher:start()
 end
@@ -122,6 +129,7 @@ function P.render(text)
   js("render", text)
 end
 
+function P.note(text) js("note", text) end
 function P.fail(msg) js("fail", msg) end
 function P.finish(ok) js("finish", ok == true) end
 function P.ask(q)

@@ -6,7 +6,7 @@ local U = require("llm_lookup.util")
 
 local S = {}
 
--- 由 init 设置：onChange(key) / onProfilesChanged() / onHotkey(mods, key) -> ok, err / onRecording(on)
+-- 由 init 设置：onChange(key) / onProfilesChanged() / onHotkey(mods, key) -> ok, err / onRecording(on) / onOpenHistory()
 S.hooks = {}
 
 local wv, uc, ready, queue = nil, nil, false, {}
@@ -28,6 +28,7 @@ local function state()
     profiles = v.profiles, active = v.active, keys = keys,
     detected = { claude = backends.detected("claude") or "", codex = backends.detected("codex") or "" },
     hotkey = v.hotkey, threeFingerTap = v.threeFingerTap, doubleClickFallback = v.doubleClickFallback,
+    webSearch = v.webSearch, saveHistory = v.saveHistory,
     width = v.width, maxHeight = v.maxHeight, prompt = config.prompt(),
     systemLookupOn = U.trim(tap or "") == "2",
     axTrusted = hs.accessibilityState(),
@@ -35,7 +36,10 @@ local function state()
 end
 
 -- 页面能改的项和类型，其它一律忽略
-local SETTINGS = { threeFingerTap = "boolean", doubleClickFallback = "boolean", width = "number", maxHeight = "number", prompt = "string" }
+local SETTINGS = {
+  threeFingerTap = "boolean", doubleClickFallback = "boolean", webSearch = "boolean", saveHistory = "boolean",
+  width = "number", maxHeight = "number", prompt = "string",
+}
 local RANGES = { width = { 360, 640 }, maxHeight = { 320, 800 } }
 local PROFILE_FIELDS = {
   name = "string", provider = "string", model = "string", effort = "string",
@@ -146,6 +150,8 @@ function handlers.openTrackpad()
   hs.execute([[open "x-apple.systempreferences:com.apple.Trackpad-Settings.extension"]])
 end
 
+function handlers.openHistory() if S.hooks.onOpenHistory then S.hooks.onOpenHistory() end end
+
 function handlers.close() S.close() end
 
 function S.open()
@@ -165,8 +171,11 @@ function S.open()
   end)
   local sf = hs.screen.mainScreen():frame()
   local w, h = 620, math.min(860, sf.h - 60)
+  -- 标题栏默认是浅色半透明的，和页面对不上。铺满内容区后标题栏底下是页面的底色
+  -- （网页会自己让出标题栏的高度）；深浅色跟着系统
   wv = hs.webview.new({ x = sf.x + (sf.w - w) / 2, y = sf.y + (sf.h - h) / 2, w = w, h = h }, {}, uc)
-      :windowStyle({ "titled", "closable", "miniaturizable" })
+      :windowStyle({ "titled", "closable", "miniaturizable", "fullSizeContentView" })
+      :darkMode(hs.host.interfaceStyle() == "Dark")
       :windowTitle("划词查词")
       :allowTextEntry(true)
       :deleteOnClose(true)
