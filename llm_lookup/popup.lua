@@ -15,6 +15,8 @@ P.text = ""
 
 local wv, uc, ready, queue, anchor
 local closeGen = 0
+local sticky -- 问答框：点外面不关，只能 Esc / 关闭按钮 / 快捷键关
+local dragTap, dragFrom -- 拖动标题栏移动窗口
 local prevWin, typed -- 查词前的焦点窗口；用户点过输入框的话，按 Esc 关掉时把焦点还回去
 
 local escKey -- 浮窗显示时按 Esc 关掉；在下面创建，这里先声明给 ensure 里的回调用
@@ -59,6 +61,8 @@ local function ensure()
       if b.on then escKey:disable() elseif wv and wv:isVisible() then escKey:enable() end
     elseif b.type == "ask" then
       if P.onAsk and type(b.q) == "string" then P.onAsk(b.q) end
+    elseif b.type == "dragStart" then
+      P.startDrag()
     elseif b.type == "open" then
       if type(b.url) == "string" and b.url:match("^https?://") then hs.urlevent.openURL(b.url) end
     end
@@ -97,6 +101,27 @@ local clickWatcher = hs.eventtap.new({ types.leftMouseDown, types.rightMouseDown
   return false
 end)
 
+-- 标题栏按下后跟着鼠标走，松开为止；在 Lua 这边按屏幕坐标算，窗口移动不影响
+function P.startDrag()
+  if not (wv and anchor) then return end
+  if dragTap then dragTap:stop() end
+  dragFrom = hs.mouse.absolutePosition()
+  dragTap = hs.eventtap.new({ types.leftMouseDragged, types.leftMouseUp }, function(e)
+    if e:getType() == types.leftMouseUp then
+      dragTap:stop()
+      return false
+    end
+    local p = hs.mouse.absolutePosition()
+    anchor.x, anchor.y = anchor.x + p.x - dragFrom.x, anchor.y + p.y - dragFrom.y
+    dragFrom = p
+    local f = wv:frame()
+    setHeight(f.h)
+    return false
+  end):start()
+end
+
+function P.isSticky() return sticky and wv ~= nil and wv:isVisible() end
+
 -- opts.ask：问答框，打开就是空白的输入框；opts.turns：从历史记录恢复的对话 { {u = 问题或 nil, a = 回答}, ... }
 function P.show(pos, title, label, opts)
   opts = opts or {}
@@ -121,7 +146,8 @@ function P.show(pos, title, label, opts)
   -- 浮窗不激活 Hammerspoon 也能成为键盘焦点，直接把光标放进输入框
   if opts.ask or opts.turns then js("focusAsk") end
   escKey:enable()
-  clickWatcher:start()
+  sticky = opts.ask == true
+  if sticky then clickWatcher:stop() else clickWatcher:start() end
 end
 
 function P.render(text)
@@ -165,6 +191,8 @@ function P.close(refocus)
   if P.onClose then P.onClose() end
   escKey:disable()
   clickWatcher:stop()
+  if dragTap then dragTap:stop() end
+  sticky = false
   if not wv then return end
   local wasVisible = wv:isVisible()
   wv:hide()

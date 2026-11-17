@@ -12,7 +12,7 @@ html,body{margin:0;background:transparent;overflow:hidden}
 body{padding:__PAD__px;font:13px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;color:var(--label);-webkit-font-smoothing:antialiased;cursor:default}
 #card{display:flex;flex-direction:column;max-height:__MAXCARD__px;background:var(--bg);border-radius:14px;overflow:hidden;
   box-shadow:0 0 0 .5px var(--edge),inset 0 .5px 0 var(--highlight),0 8px 20px -4px rgba(0,0,0,.24),0 1px 4px rgba(0,0,0,.08)}
-#head{flex:none;display:flex;align-items:center;gap:2px;height:38px;padding:0 7px 0 16px;-webkit-user-select:none}
+#head{flex:none;display:flex;cursor:grab;align-items:center;gap:2px;height:38px;padding:0 7px 0 16px;-webkit-user-select:none}
 #q{flex:1;min-width:0;font-weight:600;letter-spacing:-.005em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #label{margin:0 6px 0 8px;font-size:11px;color:var(--tertiary);white-space:nowrap}
 button{all:unset;display:grid;place-items:center;width:24px;height:24px;border-radius:12px;color:var(--secondary);transition:background .15s,color .15s}
@@ -112,6 +112,8 @@ document.addEventListener('keydown',e=>{
 // 链接交给 Lua 用默认浏览器打开，浮窗自己不跳转
 document.addEventListener('click',e=>{const a=e.target.closest('a[href]');if(a){e.preventDefault();post({type:'open',url:a.href})}});
 $('copy').onclick=()=>{post({type:'copy'});$('copy').innerHTML=CHECK;setTimeout(()=>$('copy').innerHTML=COPY,1200)};
+// 按住标题栏空白处拖动窗口
+$('head').addEventListener('mousedown',e=>{if(e.button===0&&!e.target.closest('button')){e.preventDefault();post({type:'dragStart'})}});
 $('close').onclick=()=>post({type:'close',refocus:true});
 new ResizeObserver(()=>post({type:'height',h:Math.ceil(document.body.getBoundingClientRect().height)})).observe(document.body);
 post({type:'ready'});

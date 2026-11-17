@@ -291,6 +291,11 @@ local function onHotkey()
     lastPress = 0 -- 第三下重新算
     return M.ask()
   end
+  -- 问答框常驻，再按一下快捷键关掉；这一下不算双击的第一下
+  if popup.isSticky() then
+    lastPress = 0
+    return popup.close(true)
+  end
   lastPress = now
   M.lookup("hotkey")
 end
